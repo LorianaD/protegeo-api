@@ -83,9 +83,9 @@ class AuthService
 
     private function validatePassword(string $password): void
     {
-        if (strlen($password) < 8) {
+        if (strlen($password) < 12) {
             throw new \InvalidArgumentException(
-                'Le mot de passe doit contenir au moins 8 caractères.'
+                'Le mot de passe doit contenir au moins 12 caractères.'
             );
         }
     }

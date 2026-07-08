@@ -27,9 +27,9 @@ final class UserController extends AbstractController
             ], 401);
         }
 
-        return $this->json([
+        return $this->json(
             $this->userService->getProfile($user),
-        ]);
+        );
     }
 
     #[Route('/profile', name: 'profile_update', methods: ['PATCH'])]
