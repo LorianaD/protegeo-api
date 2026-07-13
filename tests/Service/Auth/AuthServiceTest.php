@@ -34,7 +34,7 @@ class AuthServiceTest extends KernelTestCase
     public function testRegisterFailsWhenPasswordIsTooShort(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Le mot de passe doit contenir au moins 8 caractères.');
+        $this->expectExceptionMessage('Le mot de passe doit contenir au moins 12 caractères.');
 
         $this->authService->register($this->getValidRegisterData([
             'password' => '123',
@@ -53,7 +53,7 @@ class AuthServiceTest extends KernelTestCase
         $user->setAddress('Résidence Test');
         $user->setPostalCode('33170');
         $user->setCity('Gradignan');
-        $user->setPassword($passwordHasher->hashPassword($user, 'Test1234!'));
+        $user->setPassword($passwordHasher->hashPassword($user, 'Test1234!1234'));
 
         $this->em->persist($user);
         $this->em->flush();
@@ -82,7 +82,7 @@ class AuthServiceTest extends KernelTestCase
     {
         return array_merge([
             'email' => 'test@example.com',
-            'password' => 'Test1234!',
+            'password' => 'Test1234!1234',
             'firstname' => 'Test',
             'lastname' => 'TEST',
             'civility' => 'Madame',

@@ -4,13 +4,14 @@ namespace App\Service\Auth;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\Validator\PasswordValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AuthService
 {
 
-    public function __construct( private EntityManagerInterface $em, private UserPasswordHasherInterface $passwordHasher, private UserRepository $userRepository )
+    public function __construct( private EntityManagerInterface $em, private UserPasswordHasherInterface $passwordHasher, private UserRepository $userRepository, private PasswordValidator $passwordValidator )
     {
     }
 
@@ -22,7 +23,7 @@ class AuthService
         $email = strtolower(trim($data['email']));
 
         $this->validateEmail($email);
-        $this->validatePassword($data['password']);
+        $this->passwordValidator->validate($data['password']);
         $this->checkEmailIsAvailable($email);
 
         $user = new User();
@@ -77,15 +78,6 @@ class AuthService
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new \InvalidArgumentException(
                 'Adresse e-mail invalide.'
-            );
-        }
-    }
-
-    private function validatePassword(string $password): void
-    {
-        if (strlen($password) < 12) {
-            throw new \InvalidArgumentException(
-                'Le mot de passe doit contenir au moins 12 caractères.'
             );
         }
     }

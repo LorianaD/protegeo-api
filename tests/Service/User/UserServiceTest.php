@@ -65,16 +65,16 @@ class UserServiceTest extends KernelTestCase
         $user = $this->createUser();
 
         $this->userService->updatePassword($user, [
-            'current_password' => 'Test1234!',
-            'new_password' => 'NewTest1234!',
+            'current_password' => 'Test1234!1234',
+            'new_password' => 'NewTest1234!1234',
         ]);
 
         $this->assertTrue(
-            $this->passwordHasher->isPasswordValid($user, 'NewTest1234!')
+            $this->passwordHasher->isPasswordValid($user, 'NewTest1234!1234')
         );
 
         $this->assertFalse(
-            $this->passwordHasher->isPasswordValid($user, 'Test1234!')
+            $this->passwordHasher->isPasswordValid($user, 'Test1234!1234')
         );
     }
 
@@ -82,7 +82,7 @@ class UserServiceTest extends KernelTestCase
     {
         $data = array_merge([
             'email' => uniqid('test-user-', true) . '@example.com',
-            'password' => 'Test1234!',
+            'password' => 'Test1234!1234',
             'firstname' => 'Test',
             'lastname' => 'TEST',
             'civility' => 'Madame',

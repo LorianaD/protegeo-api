@@ -3,12 +3,13 @@
 namespace App\Service\User;
 
 use App\Entity\User;
+use App\Service\Validator\PasswordValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class UserService
 {
-    public function __construct(private EntityManagerInterface $em, private UserPasswordHasherInterface $passwordHasher)
+    public function __construct(private EntityManagerInterface $em, private UserPasswordHasherInterface $passwordHasher, private PasswordValidator $passwordValidator)
     {
         
     }
@@ -86,10 +87,14 @@ class UserService
             throw new \Exception('Le mot de passe actuel est incorrect.');
         }
 
+        $newPassword = $data['new_password'] ?? '';
+
+        $this->passwordValidator->validate($newPassword);
+
         $user->setPassword(
             $this->passwordHasher->hashPassword(
                 $user,
-                $data['new_password']
+                $newPassword
             )
         );
 
