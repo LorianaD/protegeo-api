@@ -57,14 +57,14 @@ class DossierService
 
     public function updateDossier(Dossier $dossier, array $data): Dossier
     {
-
         $newReferenceNumber = $data['referenceNumber'] ?? null;
         $newOpenedAt = $data['openedAt'] ?? null;
         $newClosedAt = $data['closedAt'] ?? null;
 
         if ($newReferenceNumber) {
+            $existingDossier = $this->dossierRepository
+                ->findByReferenceNumber($newReferenceNumber);
 
-            $existingDossier = $this->dossierRepository->findByReferenceNumber($newReferenceNumber);
             $id = $dossier->getId();
 
             if ($existingDossier && $existingDossier->getId() !== $id) {
@@ -76,22 +76,30 @@ class DossierService
             $dossier->setReferenceNumber($newReferenceNumber);
         }
 
+        $openedAt = $dossier->getOpenedAt();
+
         if ($newOpenedAt) {
-            $dossier->setOpenedAt(
-                new \DateTimeImmutable($newOpenedAt)
+            $openedAt = new \DateTimeImmutable($newOpenedAt);
+        }
+
+        $closedAt = $dossier->getClosedAt();
+
+        if (array_key_exists('closedAt', $data)) {
+            if ($newClosedAt === null) {
+                $closedAt = null;
+            } else {
+                $closedAt = new \DateTimeImmutable($newClosedAt);
+            }
+        }
+
+        if ($closedAt !== null && $closedAt < $openedAt) {
+            throw new \InvalidArgumentException(
+                'La date de clôture ne peut pas être antérieure à la date d’ouverture.'
             );
         }
 
-        if (array_key_exists('closedAt', $data)) {
-
-            if ($newClosedAt === null) {
-                $dossier->setClosedAt(null);
-            } else {
-                $dossier->setClosedAt(
-                    new \DateTimeImmutable($newClosedAt)
-                );
-            }
-        }
+        $dossier->setOpenedAt($openedAt);
+        $dossier->setClosedAt($closedAt);
 
         $this->em->flush();
 
