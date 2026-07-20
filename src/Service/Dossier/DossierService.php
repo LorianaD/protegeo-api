@@ -3,15 +3,16 @@
 namespace App\Service\Dossier;
 
 use App\Entity\Dossier;
+use App\Entity\User;
 use App\Repository\DossierRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 class DossierService
 {
-    public function __construct(private EntityManagerInterface $em, private DossierRepository $dossierRepository )
+    public function __construct(private EntityManagerInterface $em, private DossierRepository $dossierRepository, private DossierUserService $dossierUserService )
     {}
 
-    public function createDossier(array $data): Dossier
+    public function createDossier(array $data, User $user): Dossier
     {
         $referenceNumber = $data['referenceNumber'] ?? null;
 
@@ -47,7 +48,26 @@ class DossierService
         $this->em->persist($dossier);
         $this->em->flush();
 
+        $roleType = $data['roleType'] ?? null;
+
+        if (!$roleType) {
+            throw new \InvalidArgumentException(
+                'Le rôle dans le dossier est obligatoire.',
+            );
+        }
+
+        $this->dossierUserService->addUserToDossier(
+            $dossier,
+            $user,
+            $roleType
+        );
+
         return $dossier;
+    }
+
+    public function getOpenDossiers() : array
+    {
+        return $this->dossierRepository->findOpenDossiers();
     }
 
     function showDossier(int $id) : ?Dossier

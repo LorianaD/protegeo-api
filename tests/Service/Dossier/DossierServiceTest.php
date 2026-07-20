@@ -3,16 +3,24 @@
 namespace App\Tests\Service\Dossier;
 
 use App\Entity\Dossier;
+use App\Entity\User;
 use App\Repository\DossierRepository;
+use App\Repository\DossierUserRepository;
+use App\Repository\UserRepository;
 use App\Service\Dossier\DossierService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class DossierServiceTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
     private DossierService $dossierService;
     private DossierRepository $dossierRepository;
+    private UserRepository $userRepository;
+    private UserPasswordHasherInterface $passwordHasher;
+    private User $user;
+    private DossierUserRepository $dossierUserRepository;
 
     protected function setUp(): void
     {
@@ -23,9 +31,45 @@ class DossierServiceTest extends KernelTestCase
         $this->em = $container->get(EntityManagerInterface::class);
         $this->dossierService = $container->get(DossierService::class);
         $this->dossierRepository = $container->get(DossierRepository::class);
+        $this->dossierUserRepository = $container->get(DossierUserRepository::class);
+        $this->userRepository = $container->get(UserRepository::class);
+        $this->passwordHasher = $container->get(UserPasswordHasherInterface::class);
 
-        $this->em->createQuery('DELETE FROM App\Entity\Dossier d')
+        // We remove the linking sounds.
+        $this->em->createQuery(
+            'DELETE FROM App\Entity\DossierUser du'
+        )->execute();
+
+        // We’re deleting the files.
+        $this->em->createQuery(
+            'DELETE FROM App\Entity\Dossier d'
+        )->execute();
+
+        // The old test user is deleted, if one exists.
+        $this->em->createQuery(
+            'DELETE FROM App\Entity\User u WHERE u.email = :email'
+        )
+            ->setParameter('email', 'dossier-test@example.com')
             ->execute();
+
+        // Create the user account used by all tests.
+        $this->user = new User();
+
+        $this->user
+            ->setEmail('dossier-test@example.com')
+            ->setCivility('Mme')
+            ->setLastname('Test')
+            ->setFirstname('Dossier');
+
+        $hashedPassword = $this->passwordHasher->hashPassword(
+            $this->user,
+            'Password123!'
+        );
+
+        $this->user->setPassword($hashedPassword);
+
+        $this->em->persist($this->user);
+        $this->em->flush();
     }
 
     // Valid creation test
@@ -34,9 +78,10 @@ class DossierServiceTest extends KernelTestCase
         $data = [
             'referenceNumber' => 'TEST-001',
             'openedAt' => '2026-07-16',
+            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
         ];
 
-        $dossier = $this->dossierService->createDossier($data);
+        $dossier = $this->dossierService->createDossier($data, $this->user);
 
         $this->assertNotNull($dossier->getId());
         $this->assertSame('TEST-001', $dossier->getReferenceNumber());
@@ -57,7 +102,8 @@ class DossierServiceTest extends KernelTestCase
 
         $this->dossierService->createDossier([
             'openedAt' => '2026-07-16',
-        ]);
+            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
+        ], $this->user);
     }
 
     // Number already in use
@@ -66,16 +112,20 @@ class DossierServiceTest extends KernelTestCase
         $data = [
             'referenceNumber' => 'TEST-002',
             'openedAt' => '2026-07-16',
+            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
         ];
 
-        $this->dossierService->createDossier($data);
+        $this->dossierService->createDossier($data, $this->user);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'Un dossier avec ce numéro de référence existe déjà.'
         );
 
-        $this->dossierService->createDossier($data);
+        $this->dossierService->createDossier(
+            $data, 
+            $this->user
+        );
     }
 
     // Changing the number
@@ -179,6 +229,7 @@ class DossierServiceTest extends KernelTestCase
         return $this->dossierService->createDossier([
             'referenceNumber' => $referenceNumber,
             'openedAt' => '2026-07-16',
-        ]);
+            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
+        ], $this->user);
     }    
 }

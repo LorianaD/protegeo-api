@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\DossierRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: DossierRepository::class)]
@@ -21,6 +23,17 @@ class Dossier
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $closedAt = null;
+
+    /**
+     * @var Collection<int, DossierUser>
+     */
+    #[ORM\OneToMany(targetEntity: DossierUser::class, mappedBy: 'dossier')]
+    private Collection $dossierUsers;
+
+    public function __construct()
+    {
+        $this->dossierUsers = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -59,6 +72,36 @@ class Dossier
     public function setClosedAt(?\DateTimeImmutable $closedAt): static
     {
         $this->closedAt = $closedAt;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DossierUser>
+     */
+    public function getDossierUsers(): Collection
+    {
+        return $this->dossierUsers;
+    }
+
+    public function addDossierUser(DossierUser $dossierUser): static
+    {
+        if (!$this->dossierUsers->contains($dossierUser)) {
+            $this->dossierUsers->add($dossierUser);
+            $dossierUser->setDossier($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDossierUser(DossierUser $dossierUser): static
+    {
+        if ($this->dossierUsers->removeElement($dossierUser)) {
+            // set the owning side to null (unless already changed)
+            if ($dossierUser->getDossier() === $this) {
+                $dossierUser->setDossier(null);
+            }
+        }
 
         return $this;
     }
