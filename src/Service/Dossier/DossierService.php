@@ -3,17 +3,19 @@
 namespace App\Service\Dossier;
 
 use App\Entity\Dossier;
+use App\Entity\User;
 use App\Repository\DossierRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 class DossierService
 {
-    public function __construct(private EntityManagerInterface $em, private DossierRepository $dossierRepository )
+    public function __construct(private EntityManagerInterface $em, private DossierRepository $dossierRepository, private DossierUserService $dossierUserService )
     {}
 
-    public function createDossier(array $data): Dossier
+    public function createDossier(array $data, User $user): Dossier
     {
         $referenceNumber = $data['referenceNumber'] ?? null;
+        $roleType = $data['roleType'] ?? null;
 
         if (!$referenceNumber) {
             throw new \InvalidArgumentException(
@@ -21,8 +23,7 @@ class DossierService
             );
         }
 
-        $existingDossier = $this->dossierRepository
-            ->findByReferenceNumber($referenceNumber);
+        $existingDossier = $this->dossierRepository->findByReferenceNumber($referenceNumber);
 
         if ($existingDossier) {
             throw new \InvalidArgumentException(
@@ -44,13 +45,29 @@ class DossierService
             ->setReferenceNumber($referenceNumber)
             ->setOpenedAt($newOpenedAt);
 
+        if (!$roleType) {
+            throw new \InvalidArgumentException(
+                'Le rôle dans le dossier est obligatoire.',
+            );
+        }
+
         $this->em->persist($dossier);
-        $this->em->flush();
+
+        $this->dossierUserService->addUserToDossier(
+            $dossier,
+            $user,
+            $roleType
+        );
 
         return $dossier;
     }
 
-    function showDossier(int $id) : ?Dossier
+    public function getOpenDossiers() : array
+    {
+        return $this->dossierRepository->findOpenDossiers();
+    }
+
+    public function showDossier(int $id) : ?Dossier
     {
         return $this->dossierRepository->findOneById($id);
     }
@@ -101,9 +118,12 @@ class DossierService
         $dossier->setOpenedAt($openedAt);
         $dossier->setClosedAt($closedAt);
 
-        $this->em->flush();
-
         return $dossier;
+    }
+
+    public function save() : void
+    {
+        $this->em->flush();
     }
 
 }

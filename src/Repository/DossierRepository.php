@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Dossier;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -59,6 +60,18 @@ class DossierRepository extends ServiceEntityRepository
             ->select('d')
             ->where('d.id = :id')
             ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findOneByIdAndUser(int $id, User $user) : ?Dossier
+    {
+        return $this->createQueryBuilder('dossier')
+            ->innerJoin('dossier.dossierUsers', 'dossierUser')
+            ->andWhere('dossier.id = :id')
+            ->andWhere('dossierUser.user = :user')
+            ->setParameter('id', $id)
+            ->setParameter('user', $user)
             ->getQuery()
             ->getOneOrNullResult();
     }
