@@ -15,6 +15,7 @@ class DossierService
     public function createDossier(array $data, User $user): Dossier
     {
         $referenceNumber = $data['referenceNumber'] ?? null;
+        $roleType = $data['roleType'] ?? null;
 
         if (!$referenceNumber) {
             throw new \InvalidArgumentException(
@@ -22,8 +23,7 @@ class DossierService
             );
         }
 
-        $existingDossier = $this->dossierRepository
-            ->findByReferenceNumber($referenceNumber);
+        $existingDossier = $this->dossierRepository->findByReferenceNumber($referenceNumber);
 
         if ($existingDossier) {
             throw new \InvalidArgumentException(
@@ -45,16 +45,13 @@ class DossierService
             ->setReferenceNumber($referenceNumber)
             ->setOpenedAt($newOpenedAt);
 
-        $this->em->persist($dossier);
-        $this->em->flush();
-
-        $roleType = $data['roleType'] ?? null;
-
         if (!$roleType) {
             throw new \InvalidArgumentException(
                 'Le rôle dans le dossier est obligatoire.',
             );
         }
+
+        $this->em->persist($dossier);
 
         $this->dossierUserService->addUserToDossier(
             $dossier,
@@ -70,7 +67,7 @@ class DossierService
         return $this->dossierRepository->findOpenDossiers();
     }
 
-    function showDossier(int $id) : ?Dossier
+    public function showDossier(int $id) : ?Dossier
     {
         return $this->dossierRepository->findOneById($id);
     }
@@ -121,9 +118,12 @@ class DossierService
         $dossier->setOpenedAt($openedAt);
         $dossier->setClosedAt($closedAt);
 
-        $this->em->flush();
-
         return $dossier;
+    }
+
+    public function save() : void
+    {
+        $this->em->flush();
     }
 
 }

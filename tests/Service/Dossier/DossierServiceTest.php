@@ -83,6 +83,8 @@ class DossierServiceTest extends KernelTestCase
 
         $dossier = $this->dossierService->createDossier($data, $this->user);
 
+        $this->dossierService->save();
+
         $this->assertNotNull($dossier->getId());
         $this->assertSame('TEST-001', $dossier->getReferenceNumber());
         $this->assertSame(
@@ -116,6 +118,8 @@ class DossierServiceTest extends KernelTestCase
         ];
 
         $this->dossierService->createDossier($data, $this->user);
+
+        $this->dossierService->save();
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
@@ -226,10 +230,15 @@ class DossierServiceTest extends KernelTestCase
 
     private function createDossierForTest(string $referenceNumber): Dossier
     {
-        return $this->dossierService->createDossier([
+        $dossier = $this->dossierService->createDossier([
             'referenceNumber' => $referenceNumber,
             'openedAt' => '2026-07-16',
             'roleType' => 'Curateur / Curatrice à la personne et aux biens',
         ], $this->user);
-    }    
+
+        $this->dossierService->save();
+
+        return $dossier;
+
+    }
 }

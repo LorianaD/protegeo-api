@@ -17,14 +17,38 @@ class AuthServiceTest extends KernelTestCase
     {
         self::bootKernel();
 
-        $this->em = self::getContainer()->get(EntityManagerInterface::class);
-        $this->authService = self::getContainer()->get(AuthService::class);
+        $container = self::getContainer();
+
+        $this->em = $container->get(
+            EntityManagerInterface::class
+        );
+
+        $this->authService = $container->get(
+            AuthService::class
+        );
+
+        // Remove users created by previous executions of this test suite.
+        $this->em->createQuery(
+            'DELETE FROM App\Entity\User u
+            WHERE u.email IN (:emails)'
+        )
+            ->setParameter(
+                'emails',
+                [
+                    'test@example.com',
+                    'existing@example.com',
+                    'new-user@example.com',
+                ]
+            )
+            ->execute();
     }
 
     public function testRegisterFailsWhenEmailIsInvalid(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Adresse e-mail invalide.');
+        $this->expectExceptionMessage(
+            'Adresse e-mail invalide.'
+        );
 
         $this->authService->register($this->getValidRegisterData([
             'email' => 'test',

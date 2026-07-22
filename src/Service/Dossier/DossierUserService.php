@@ -34,20 +34,32 @@ class DossierUserService
             );
         }
 
-        $existingDossierUser = $this->dossierUserRepository->findOneByUserAndDossier($user, $dossier);
+        /*
+        * Le contrôle du doublon n’est nécessaire que pour
+        * un dossier déjà enregistré en base de données.
+        */
+        if ($dossier->getId() !== null) {
+            $existingDossierUser = $this->dossierUserRepository
+                ->findOneByUserAndDossier(
+                    $user,
+                    $dossier
+                );
 
-        if ($existingDossierUser !== null) {
-            throw new InvalidArgumentException(
-                'Cet utilisateur est déjà associé à ce dossier.'
-            );
+            if ($existingDossierUser !== null) {
+                throw new InvalidArgumentException(
+                    'Cet utilisateur est déjà associé à ce dossier.'
+                );
+            }
         }
 
         $dossierUser = new DossierUser();
 
-        $dossierUser->setDossier($dossier)->setUser($user)->setRoleType($roleType);
+        $dossierUser
+            ->setDossier($dossier)
+            ->setUser($user)
+            ->setRoleType($roleType);
 
         $this->em->persist($dossierUser);
-        $this->em->flush();
 
         return $dossierUser;
     }
