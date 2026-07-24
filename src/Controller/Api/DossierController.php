@@ -39,14 +39,14 @@ final class DossierController extends AbstractController
             ], 401);
         }
 
-        $dossiersUsers = $this->dossierUserService->getOpenDossiersByUser($user);
+        $dossierUsers = $this->dossierUserService->getOpenDossiersByUser($user);
 
         $dossiersData = [];
 
-        foreach ($dossiersUsers as $dossiersUser) {
-            $dossiersData[] = $this->dossierFormatter->formatWithRoleType(
-                $dossiersUser->getDossier(),
-                $dossiersUser->getRoleType()
+        foreach ($dossierUsers as $dossierUser) {
+            $dossiersData[] = $this->dossierFormatter->formatForUserList(
+                $dossierUser->getDossier(),
+                $dossierUser->getRoleType()
             );
         }
 
