@@ -39,10 +39,24 @@ class Dossier
     #[ORM\OneToMany(targetEntity: MeasureProtection::class, mappedBy: 'dossier')]
     private Collection $measureProtections;
 
+    /**
+     * @var Collection<int, ManagementAccount>
+     */
+    #[ORM\OneToMany(targetEntity: ManagementAccount::class, mappedBy: 'dossier')]
+    private Collection $managementAccounts;
+
+    /**
+     * @var Collection<int, BankAccount>
+     */
+    #[ORM\OneToMany(targetEntity: BankAccount::class, mappedBy: 'dossier')]
+    private Collection $bankAccounts;
+
     public function __construct()
     {
         $this->dossierUsers = new ArrayCollection();
         $this->measureProtections = new ArrayCollection();
+        $this->managementAccounts = new ArrayCollection();
+        $this->bankAccounts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -157,6 +171,66 @@ class Dossier
             // set the owning side to null (unless already changed)
             if ($measureProtection->getDossier() === $this) {
                 $measureProtection->setDossier(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ManagementAccount>
+     */
+    public function getManagementAccounts(): Collection
+    {
+        return $this->managementAccounts;
+    }
+
+    public function addManagementAccount(ManagementAccount $managementAccount): static
+    {
+        if (!$this->managementAccounts->contains($managementAccount)) {
+            $this->managementAccounts->add($managementAccount);
+            $managementAccount->setDossier($this);
+        }
+
+        return $this;
+    }
+
+    public function removeManagementAccount(ManagementAccount $managementAccount): static
+    {
+        if ($this->managementAccounts->removeElement($managementAccount)) {
+            // set the owning side to null (unless already changed)
+            if ($managementAccount->getDossier() === $this) {
+                $managementAccount->setDossier(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BankAccount>
+     */
+    public function getBankAccounts(): Collection
+    {
+        return $this->bankAccounts;
+    }
+
+    public function addBankAccount(BankAccount $bankAccount): static
+    {
+        if (!$this->bankAccounts->contains($bankAccount)) {
+            $this->bankAccounts->add($bankAccount);
+            $bankAccount->setDossier($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBankAccount(BankAccount $bankAccount): static
+    {
+        if ($this->bankAccounts->removeElement($bankAccount)) {
+            // set the owning side to null (unless already changed)
+            if ($bankAccount->getDossier() === $this) {
+                $bankAccount->setDossier(null);
             }
         }
 

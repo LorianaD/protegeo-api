@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ProtectedPersonRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -82,9 +84,16 @@ class ProtectedPerson
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Dossier $dossier = null;
 
+    /**
+     * @var Collection<int, Contacts>
+     */
+    #[ORM\OneToMany(targetEntity: Contacts::class, mappedBy: 'protectedPerson')]
+    private Collection $contacts;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->contacts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -352,6 +361,36 @@ class ProtectedPerson
     public function setDossier(Dossier $dossier): static
     {
         $this->dossier = $dossier;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Contacts>
+     */
+    public function getContacts(): Collection
+    {
+        return $this->contacts;
+    }
+
+    public function addContact(Contacts $contact): static
+    {
+        if (!$this->contacts->contains($contact)) {
+            $this->contacts->add($contact);
+            $contact->setProtectedPerson($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContact(Contacts $contact): static
+    {
+        if ($this->contacts->removeElement($contact)) {
+            // set the owning side to null (unless already changed)
+            if ($contact->getProtectedPerson() === $this) {
+                $contact->setProtectedPerson(null);
+            }
+        }
 
         return $this;
     }
