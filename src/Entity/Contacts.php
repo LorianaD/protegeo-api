@@ -72,6 +72,9 @@ class Contacts
     #[ORM\JoinColumn(nullable: false)]
     private ?ProtectedPerson $protectedPerson = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $relationType = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -306,6 +309,18 @@ class Contacts
     public function setProtectedPerson(?ProtectedPerson $protectedPerson): static
     {
         $this->protectedPerson = $protectedPerson;
+
+        return $this;
+    }
+
+    public function getRelationType(): ?string
+    {
+        return $this->relationType;
+    }
+
+    public function setRelationType(?string $relationType): static
+    {
+        $this->relationType = $relationType;
 
         return $this;
     }
