@@ -44,7 +44,7 @@ class ManagementAccountService
     /**
      * Saves changes to an existing management account.
      */
-    public function updateManagementAccount(ManagementAccount $managementAccount,): void
+    public function updateManagementAccount(ManagementAccount $managementAccount): void
     {
         $managementAccount->setUpdatedAt(new \DateTimeImmutable());
 

@@ -279,7 +279,7 @@ class MeasureProtectionService
     {
         $measureType = $this->requiredString($value, 'type de mesure');
 
-        if (!in_array($measureType, MeasureProtectionType::TYPES, true)) {
+        if (!MeasureProtectionType::isValid($measureType)) {
             throw new \InvalidArgumentException(
                 'Le type de mesure renseigné n\'est pas valide.'
             );

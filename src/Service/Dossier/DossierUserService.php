@@ -28,7 +28,7 @@ class DossierUserService
             );
         }
 
-        if (!in_array($roleType, DossierUserRole::ROLE_TYPES, true)) {
+        if (!DossierUserRole::isValid($roleType)) {
             throw new InvalidArgumentException(
                 'Le rôle renseigné n\'est pas valide.'
             );
@@ -77,7 +77,7 @@ class DossierUserService
             );
         }
 
-        if (!in_array($roleType, DossierUserRole::ROLE_TYPES, true)) {
+        if (!DossierUserRole::isValid($roleType)) {
             throw new InvalidArgumentException(
                 'Le rôle renseigné n\'est pas valide.'
             );

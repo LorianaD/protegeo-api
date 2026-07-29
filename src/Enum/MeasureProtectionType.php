@@ -2,16 +2,22 @@
 
 namespace App\Enum;
 
+/**
+ * Defines the available types of legal protection measures.
+ */
 final class MeasureProtectionType
 {
-    public const SAFEGUARD_OF_JUSTICE = 'Sauvegarde de justice';
-    public const SIMPLE_CURATORSHIP = 'Curatelle simple';
-    public const REINFORCED_CURATORSHIP = 'Curatelle renforcée';
-    public const ADAPTED_CURATORSHIP = 'Curatelle aménagée';
-    public const GUARDIANSHIP = 'Tutelle';
-    public const FAMILY_AUTHORIZATION = 'Habilitation familiale';
-    public const FUTURE_PROTECTION_MANDATE = 'Mandat de protection future';
+    public const SAFEGUARD_OF_JUSTICE = 'safeguard_of_justice';
+    public const SIMPLE_CURATORSHIP = 'simple_curatorship';
+    public const REINFORCED_CURATORSHIP = 'reinforced_curatorship';
+    public const ADAPTED_CURATORSHIP = 'adapted_curatorship';
+    public const GUARDIANSHIP = 'guardianship';
+    public const FAMILY_AUTHORIZATION = 'family_authorization';
+    public const FUTURE_PROTECTION_MANDATE = 'future_protection_mandate';
 
+    /**
+     * List of all available legal protection measure types.
+     */
     public const TYPES = [
         self::SAFEGUARD_OF_JUSTICE,
         self::SIMPLE_CURATORSHIP,
@@ -22,8 +28,11 @@ final class MeasureProtectionType
         self::FUTURE_PROTECTION_MANDATE,
     ];
 
-    public static function isValid(string $measureTypes): bool
+    /**
+     * Checks whether the given measure type is valid.
+     */
+    public static function isValid(string $measureType): bool
     {
-        return in_array($measureTypes, self::TYPES, true);
+        return in_array($measureType, self::TYPES, true);
     }
 }
