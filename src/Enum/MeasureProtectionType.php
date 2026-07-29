@@ -21,4 +21,9 @@ final class MeasureProtectionType
         self::FAMILY_AUTHORIZATION,
         self::FUTURE_PROTECTION_MANDATE,
     ];
+
+    public static function isValid(string $measureTypes): bool
+    {
+        return in_array($measureTypes, self::TYPES, true);
+    }
 }

@@ -12,8 +12,8 @@ use Doctrine\ORM\EntityManagerInterface;
 class MeasureProtectionService
 {
     public function __construct(
-        private readonly MeasureProtectionRepository $measureProtectionRepository,
-        private readonly EntityManagerInterface $em
+        private MeasureProtectionRepository $measureProtectionRepository,
+        private EntityManagerInterface $em
     )
     {}
 
