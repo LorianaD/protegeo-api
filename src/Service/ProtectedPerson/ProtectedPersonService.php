@@ -11,8 +11,8 @@ use Doctrine\ORM\EntityManagerInterface;
 class ProtectedPersonService
 {
     public function __construct(
-        private readonly ProtectedPersonRepository $protectedPersonRepository,
-        private readonly EntityManagerInterface $em
+        private ProtectedPersonRepository $protectedPersonRepository,
+        private EntityManagerInterface $em
     )
     {}
 

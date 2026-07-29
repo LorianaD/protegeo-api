@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Dossier;
 use App\Entity\ManagementAccount;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -16,28 +17,36 @@ class ManagementAccountRepository extends ServiceEntityRepository
         parent::__construct($registry, ManagementAccount::class);
     }
 
-    //    /**
-    //     * @return ManagementAccount[] Returns an array of ManagementAccount objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('m.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Returns all management accounts for the given dossier.
+     */
+    public function findByDossier(Dossier $dossier): array
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.dossier = :dossier')
+            ->setParameter('dossier', $dossier)
+            ->orderBy('m.year', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 
-    //    public function findOneBySomeField($value): ?ManagementAccount
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /**
+     * Returns the management account for the given dossier and year.
+     */
+    public function findOneByDossierAndYear(Dossier $dossier, int $year): ?ManagementAccount
+    {
+        $startDate = new \DateTimeImmutable("$year-01-01");
+        $endDate = $startDate->modify('+1 year');
+
+        // Search for the management account matching the requested year.
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.dossier = :dossier')
+            ->andWhere('m.year >= :startDate')
+            ->andWhere('m.year < :endDate')
+            ->setParameter('dossier', $dossier)
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

@@ -12,8 +12,8 @@ use Doctrine\ORM\EntityManagerInterface;
 class MeasureProtectionService
 {
     public function __construct(
-        private readonly MeasureProtectionRepository $measureProtectionRepository,
-        private readonly EntityManagerInterface $em
+        private MeasureProtectionRepository $measureProtectionRepository,
+        private EntityManagerInterface $em
     )
     {}
 
@@ -279,7 +279,7 @@ class MeasureProtectionService
     {
         $measureType = $this->requiredString($value, 'type de mesure');
 
-        if (!in_array($measureType, MeasureProtectionType::TYPES, true)) {
+        if (!MeasureProtectionType::isValid($measureType)) {
             throw new \InvalidArgumentException(
                 'Le type de mesure renseigné n\'est pas valide.'
             );
