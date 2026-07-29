@@ -221,9 +221,8 @@ class ManagementAccountController extends AbstractController
     /**
      * Formats a management account for the JSON response.
      */
-    private function formatManagementAccount(
-        ManagementAccount $managementAccount,
-    ): array {
+    private function formatManagementAccount(ManagementAccount $managementAccount): array
+    {
         return [
             'id' => $managementAccount->getId(),
             'dossier_id' => $managementAccount->getDossier()->getId(),
