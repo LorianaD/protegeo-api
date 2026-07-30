@@ -61,10 +61,24 @@ class BankAccount
     #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'bankAccount')]
     private Collection $transactions;
 
+    /**
+     * @var Collection<int, BankingTransaction>
+     */
+    #[ORM\OneToMany(targetEntity: BankingTransaction::class, mappedBy: 'sourceBankAccount')]
+    private Collection $sourceBankingTransactions;
+
+    /**
+     * @var Collection<int, BankingTransaction>
+     */
+    #[ORM\OneToMany(targetEntity: BankingTransaction::class, mappedBy: 'destinationBankAccount')]
+    private Collection $destinationBankingTransactions;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->transactions = new ArrayCollection();
+        $this->sourceBankingTransactions = new ArrayCollection();
+        $this->destinationBankingTransactions = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -246,13 +260,77 @@ class BankAccount
         return $this;
     }
 
-    public function removeTrasaction(Transaction $trasaction): static
+    public function removeTrasaction(Transaction $transaction): static
     {
-        if ($this->transactions->removeElement($trasaction)) {
+        if ($this->transactions->removeElement($transaction)) {
             // set the owning side to null (unless already changed)
-            if ($trasaction->getBankAccount() === $this) {
-                $trasaction->setBankAccount(null);
+            if ($transaction->getBankAccount() === $this) {
+                $transaction->setBankAccount(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BankingTransaction>
+     */
+    public function getSourceBankingTransactions(): Collection
+    {
+        return $this->sourceBankingTransactions;
+    }
+
+    public function addSourceBankingTransaction(BankingTransaction $bankingTransaction): static
+    {
+        $hasBankingTransaction = $this->sourceBankingTransactions->contains($bankingTransaction);
+
+        if (!$hasBankingTransaction) {
+            $this->sourceBankingTransactions->add($bankingTransaction);
+            $bankingTransaction->setSourceBankAccount($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSourceBankingTransaction(BankingTransaction $bankingTransaction): static
+    {
+        $isRemoved = $this->sourceBankingTransactions->removeElement($bankingTransaction);
+        $isCurrentSourceBankAccount = $bankingTransaction->getSourceBankAccount() === $this;
+
+        if ($isRemoved && $isCurrentSourceBankAccount) {
+            $bankingTransaction->setSourceBankAccount(null);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BankingTransaction>
+     */
+    public function getDestinationBankingTransactions(): Collection
+    {
+        return $this->destinationBankingTransactions;
+    }
+
+    public function addDestinationBankingTransaction(BankingTransaction $bankingTransaction): static
+    {
+        $hasBankingTransaction = $this->destinationBankingTransactions->contains($bankingTransaction);
+
+        if (!$hasBankingTransaction) {
+            $this->destinationBankingTransactions->add($bankingTransaction);
+            $bankingTransaction->setDestinationBankAccount($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDestinationBankingTransaction(BankingTransaction $bankingTransaction): static
+    {
+        $isRemoved = $this->destinationBankingTransactions->removeElement($bankingTransaction);
+        $isCurrentDestinationBankAccount = $bankingTransaction->getDestinationBankAccount() === $this;
+
+        if ($isRemoved && $isCurrentDestinationBankAccount) {
+            $bankingTransaction->setDestinationBankAccount(null);
         }
 
         return $this;
