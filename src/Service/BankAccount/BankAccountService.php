@@ -4,7 +4,6 @@ namespace App\Service\BankAccount;
 
 use App\Entity\BankAccount;
 use App\Entity\Dossier;
-use App\Entity\User;
 use App\Enum\BankAccountType;
 use App\Repository\BankAccountRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,7 +20,7 @@ class BankAccountService
      *
      * @return BankAccount[]
      */
-    public function getByDossierId(int $dossierId, User $user): array
+    public function getByDossierId(int $dossierId): array
     {
 
         return $this->bankAccountRepository->findByDossierId($dossierId);
@@ -30,7 +29,7 @@ class BankAccountService
     /**
      * Returns one bank account for a dossier.
      */
-    public function getByIdAndDossierId(int $bankAccountId, int $dossierId, User $user): ?BankAccount
+    public function getByIdAndDossierId(int $bankAccountId, int $dossierId): ?BankAccount
     {
         return $this->bankAccountRepository->findOneByIdAndDossierId(
             $bankAccountId,
@@ -53,7 +52,7 @@ class BankAccountService
 
         $bankAccount->setDossier($dossier);
 
-        $this->updateBankAccountData($bankAccount, $data);
+        $this->setBankAccountData($bankAccount, $data);
 
         $this->em->persist($bankAccount);
         $this->em->flush();
@@ -66,7 +65,7 @@ class BankAccountService
      */
     public function update(BankAccount $bankAccount, array $data): BankAccount
     {
-        $this->updateBankAccountData($bankAccount, $data);
+        $this->setBankAccountData($bankAccount, $data);
 
         $this->em->flush();
 
@@ -74,9 +73,9 @@ class BankAccountService
     }
 
     /**
-     * Updates bank account data.
+     * Sets bank account data.
      */
-    private function updateBankAccountData(BankAccount $bankAccount,array $data): void
+    private function setBankAccountData(BankAccount $bankAccount, array $data): void
     {
         if (array_key_exists('bank_name', $data)) {
             $bankAccount->setBankName($data['bank_name']);

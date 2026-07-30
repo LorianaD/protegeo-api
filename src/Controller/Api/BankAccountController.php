@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/api/dossiers/{dossierId}/bank-accounts')]
+#[Route('/api/dossiers/{dossierId}/bank-accounts', name: 'api_bank_accounts_')]
 class BankAccountController extends AbstractController
 {
     public function __construct(
@@ -24,7 +24,7 @@ class BankAccountController extends AbstractController
     /**
      * Returns all bank accounts for a dossier.
      */
-    #[Route('', name: 'api_bank_accounts_index', methods: ['GET'])]
+    #[Route('', name: 'index', methods: ['GET'])]
     public function index(int $dossierId): JsonResponse
     {
         /** @var User $user */
@@ -62,7 +62,7 @@ class BankAccountController extends AbstractController
     /**
      * Returns one bank account for a dossier.
      */
-    #[Route('/{bankAccountId}', name: 'api_bank_accounts_show', methods: ['GET'])]
+    #[Route('/{bankAccountId}', name: 'show', methods: ['GET'])]
     public function show(int $dossierId, int $bankAccountId): JsonResponse
     {
         /** @var User $user */
@@ -105,7 +105,7 @@ class BankAccountController extends AbstractController
     /**
      * Creates a bank account for a dossier.
      */
-    #[Route('', name: 'api_bank_accounts_create', methods: ['POST'])]
+    #[Route('', name: 'create', methods: ['POST'])]
     public function create(int $dossierId, Request $request): JsonResponse
     {
         /** @var User $user */
@@ -148,7 +148,7 @@ class BankAccountController extends AbstractController
     /**
      * Updates a bank account.
      */
-    #[Route('/{bankAccountId}', name: 'api_bank_accounts_update', methods: ['PATCH'])]
+    #[Route('/{bankAccountId}', name: 'update', methods: ['PATCH'])]
     public function update(int $dossierId, int $bankAccountId, Request $request): JsonResponse
     {
         /** @var User $user */

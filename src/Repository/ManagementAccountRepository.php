@@ -49,4 +49,28 @@ class ManagementAccountRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function findOneById(int $managementAccountId): ?ManagementAccount
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.id = :managementAccountId')
+            ->setParameter('managementAccountId', $managementAccountId)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Returns one management account linked to a dossier.
+     */
+    public function findOneByIdAndDossierId(int $managementAccountId,int $dossierId): ?ManagementAccount
+    {
+        return $this->createQueryBuilder('m')
+            ->innerJoin('m.dossier', 'dossier')
+            ->andWhere('m.id = :managementAccountId')
+            ->andWhere('dossier.id = :dossierId')
+            ->setParameter('managementAccountId', $managementAccountId)
+            ->setParameter('dossierId', $dossierId)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

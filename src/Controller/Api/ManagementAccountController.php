@@ -3,12 +3,13 @@
 namespace App\Controller\Api;
 
 use App\Entity\ManagementAccount;
+use App\Entity\User;
 use App\Enum\ManagementAccountStatus;
 use App\Repository\DossierRepository;
 use App\Repository\ManagementAccountRepository;
 use App\Service\ManagementAccount\ManagementAccountService;
-use DateTimeImmutable;
 use DateTime;
+use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,8 +22,7 @@ class ManagementAccountController extends AbstractController
         private DossierRepository $dossierRepository,
         private ManagementAccountRepository $managementAccountRepository,
         private ManagementAccountService $managementAccountService,
-    ) {
-    }
+    ) {}
 
     /**
      * Returns all management accounts for the given dossier.
@@ -30,11 +30,22 @@ class ManagementAccountController extends AbstractController
     #[Route('', name: 'api_management_accounts_index', methods: ['GET'])]
     public function index(int $dossierId): JsonResponse
     {
-        $dossier = $this->dossierRepository->find($dossierId);
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json([
+                'message' => 'Utilisateur non authentifié.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $dossier = $this->dossierRepository->findOneByIdAndUser(
+            $dossierId, 
+            $user
+        );
 
         if (!$dossier) {
             return $this->json([
-                'message' => 'Dossier introuvable.',
+                'message' => 'Dossier introuvable ou accès refusé.',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
@@ -56,20 +67,32 @@ class ManagementAccountController extends AbstractController
     #[Route('/{managementAccountId}', name: 'api_management_accounts_show', methods: ['GET'])]
     public function show(int $dossierId, int $managementAccountId): JsonResponse
     {
-        $dossier = $this->dossierRepository->find($dossierId);
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json([
+                'message' => 'Utilisateur non authentifié.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $dossier = $this->dossierRepository->findOneByIdAndUser(
+            $dossierId, 
+            $user
+        );
 
         if (!$dossier) {
             return $this->json([
-                'message' => 'Dossier introuvable.',
+                'message' => 'Dossier introuvable ou accès refusé.',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $managementAccount = $this->managementAccountRepository->find($managementAccountId);
+        $managementAccount = $this->managementAccountRepository
+            ->findOneByIdAndDossierId(
+                $managementAccountId, 
+                $dossierId
+            );
 
-        if (
-            !$managementAccount
-            || $managementAccount->getDossier()->getId() !== $dossier->getId()
-        ) {
+        if (!$managementAccount) {
             return $this->json([
                 'message' => 'Compte de gestion introuvable.',
             ], JsonResponse::HTTP_NOT_FOUND);
@@ -86,11 +109,22 @@ class ManagementAccountController extends AbstractController
     #[Route('', name: 'api_management_accounts_create', methods: ['POST'])]
     public function create(Request $request, int $dossierId): JsonResponse
     {
-        $dossier = $this->dossierRepository->find($dossierId);
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json([
+                'message' => 'Utilisateur non authentifié.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $dossier = $this->dossierRepository->findOneByIdAndUser(
+            $dossierId, 
+            $user
+        );
 
         if (!$dossier) {
             return $this->json([
-                'message' => 'Dossier introuvable.',
+                'message' => 'Dossier introuvable ou accès refusé.',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
@@ -125,7 +159,6 @@ class ManagementAccountController extends AbstractController
             ], JsonResponse::HTTP_CONFLICT);
         }
 
-        $managementAccount = new ManagementAccount();
         $status = $data['status'] ?? ManagementAccountStatus::IN_PROGRESS;
 
         if (!is_string($status) || !ManagementAccountStatus::isValid($status)) {
@@ -133,6 +166,8 @@ class ManagementAccountController extends AbstractController
                 'message' => 'Le statut est invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
+
+        $managementAccount = new ManagementAccount();
 
         $managementAccount->setDossier($dossier);
         $managementAccount->setYear(new DateTime($year . '-01-01'));
@@ -160,20 +195,31 @@ class ManagementAccountController extends AbstractController
     #[Route('/{managementAccountId}', name: 'api_management_accounts_update', methods: ['PATCH'])]
     public function update(Request $request, int $dossierId, int $managementAccountId): JsonResponse
     {
-        $dossier = $this->dossierRepository->find($dossierId);
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json([
+                'message' => 'Utilisateur non authentifié.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $dossier = $this->dossierRepository->findOneByIdAndUser(
+            $dossierId, 
+            $user
+        );
 
         if (!$dossier) {
             return $this->json([
-                'message' => 'Dossier introuvable.',
+                'message' => 'Dossier introuvable ou accès refusé.',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $managementAccount = $this->managementAccountRepository->find($managementAccountId);
+        $managementAccount = $this->managementAccountRepository->findOneByIdAndDossierId(
+            $managementAccountId, 
+            $dossierId
+        );
 
-        if (
-            !$managementAccount
-            || $managementAccount->getDossier()->getId() !== $dossier->getId()
-        ) {
+        if (!$managementAccount) {
             return $this->json([
                 'message' => 'Compte de gestion introuvable.',
             ], JsonResponse::HTTP_NOT_FOUND);
