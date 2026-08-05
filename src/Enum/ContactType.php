@@ -82,7 +82,7 @@ final class ContactType
     public const BANK = 'bank';
 
     /** Medical practice. */
-    public const MEDICAL_OFFICE = 'medical_office';
+    public const TAX_OFFICE = 'tax_office';
 
     /** Any other public or private organization. */
     public const OTHER_ORGANIZATION = 'other_organization';
@@ -114,7 +114,7 @@ final class ContactType
         self::CPAM,
         self::MDPH,
         self::BANK,
-        self::MEDICAL_OFFICE,
+        self::TAX_OFFICE,
         self::OTHER_ORGANIZATION,
     ];
 

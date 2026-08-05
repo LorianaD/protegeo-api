@@ -176,17 +176,15 @@ class BankingTransactionController extends AbstractController
 
         $sourceBankAccountId = $data['source_bank_account_id'] ?? null;
         $destinationBankAccountId = $data['destination_bank_account_id'] ?? null;
-        $hasSourceBankAccountId = filter_var($sourceBankAccountId, FILTER_VALIDATE_INT) !== false;
-        $hasDestinationBankAccountId = filter_var($destinationBankAccountId, FILTER_VALIDATE_INT) !== false;
 
-        if (!$hasSourceBankAccountId) {
+        if (!is_int($sourceBankAccountId)) {
             return $this->json(
                 ['error' => 'Le compte bancaire source est obligatoire.'],
                 JsonResponse::HTTP_BAD_REQUEST
             );
         }
 
-        if (!$hasDestinationBankAccountId) {
+        if (!is_int($destinationBankAccountId)) {
             return $this->json(
                 ['error' => 'Le compte bancaire destinataire est obligatoire.'],
                 JsonResponse::HTTP_BAD_REQUEST

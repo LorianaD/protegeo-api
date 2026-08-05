@@ -49,11 +49,10 @@ class ContactsController extends AbstractController
                 $contactCategory
             );
 
+            $formattedContacts = $this->contactsService->formatContacts($contacts);
+
             return $this->json([
-                'contacts' => array_map(
-                    fn ($contact) => $this->contactsService->formatContact($contact),
-                    $contacts
-                ),
+                'contacts' => $formattedContacts,
             ]);
         } catch (\RuntimeException $exception) {
             return $this->json([

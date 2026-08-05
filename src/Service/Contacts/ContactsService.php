@@ -45,11 +45,8 @@ class ContactsService
      *
      * @return Contacts[]
      */
-    public function getContactsByDossier(
-        int $dossierId,
-        User $user,
-        ?string $contactCategory = null
-    ): array {
+    public function getContactsByDossier(int $dossierId, User $user, ?string $contactCategory = null): array
+    {
         $protectedPerson = $this->getProtectedPersonByDossier(
             $dossierId,
             $user
@@ -69,11 +66,8 @@ class ContactsService
      *
      * @throws \RuntimeException When the contact cannot be found.
      */
-    public function getContact(
-        int $dossierId,
-        int $contactId,
-        User $user
-    ): Contacts {
+    public function getContact(int $dossierId, int $contactId, User $user): Contacts
+    {
         $protectedPerson = $this->getProtectedPersonByDossier(
             $dossierId,
             $user
@@ -99,11 +93,8 @@ class ContactsService
      *
      * @throws \InvalidArgumentException When the submitted data is invalid.
      */
-    public function createContact(
-        int $dossierId,
-        array $data,
-        User $user
-    ): Contacts {
+    public function createContact(int $dossierId, array $data, User $user): Contacts 
+    {
         $protectedPerson = $this->getProtectedPersonByDossier(
             $dossierId,
             $user
@@ -130,12 +121,8 @@ class ContactsService
      *
      * @throws \InvalidArgumentException When one of the submitted values is invalid.
      */
-    public function updateContact(
-        int $dossierId,
-        int $contactId,
-        array $data,
-        User $user
-    ): Contacts {
+    public function updateContact(int $dossierId, int $contactId, array $data, User $user): Contacts
+    {
         $contact = $this->getContact(
             $dossierId,
             $contactId,
@@ -203,6 +190,24 @@ class ContactsService
     }
 
     /**
+     * Converts a list of contact entities into an API-friendly array.
+     *
+     * @param Contacts[] $contacts
+     *
+     * @return array
+     */
+    public function formatContacts(array $contacts): array
+    {
+        $formattedContacts = [];
+
+        foreach ($contacts as $contact) {
+            $formattedContacts[] = $this->formatContact($contact);
+        }
+
+        return $formattedContacts;
+    }
+
+    /**
      * Returns the protected person associated with a dossier.
      *
      * This method centralizes dossier lookup, access control and protected
@@ -212,10 +217,8 @@ class ContactsService
      * @throws \RuntimeException When the user cannot access the dossier.
      * @throws \RuntimeException When no protected person is linked to the dossier.
      */
-    private function getProtectedPersonByDossier(
-        int $dossierId,
-        User $user
-    ): ProtectedPerson {
+    private function getProtectedPersonByDossier( int $dossierId, User $user ): ProtectedPerson
+    {
         $dossier = $this->dossierRepository->find($dossierId);
 
         if (!$dossier) {

@@ -13,8 +13,7 @@ class ProtectedPersonService
     public function __construct(
         private ProtectedPersonRepository $protectedPersonRepository,
         private EntityManagerInterface $em
-    )
-    {}
+    ) {}
 
     public function getByDossierId(int $dossierId, User $user) : ProtectedPerson
     {
