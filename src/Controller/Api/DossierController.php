@@ -270,4 +270,30 @@ final class DossierController extends AbstractController
         }
     }
 
+    #[Route('/reference/{referenceNumber}', name: 'show_by_reference', methods: ['GET'])]
+    public function showByReference(#[CurrentUser] ?User $user, string $referenceNumber): JsonResponse 
+    {
+        if (!$user) {
+            return $this->json([
+                'message' => 'Utilisateur non connecté.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $dossier = $this->dossierService->getByReferenceNumberAndUser(
+            $referenceNumber,
+            $user
+        );
+
+        if (!$dossier) {
+            return $this->json([
+                'message' => 'Dossier introuvable.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        return $this->json([
+            'id' => $dossier->getId(),
+            'reference_number' => $dossier->getReferenceNumber(),
+        ]);
+    }
+
 }

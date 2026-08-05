@@ -17,17 +17,19 @@ class DossierRepository extends ServiceEntityRepository
         parent::__construct($registry, Dossier::class);
     }
 
-    //    /**
-    //     * @return Dossier[] Returns an array of Dossier objects
-    //     */
-
-    public function findByReferenceNumber(string $referenceNumber) : ?Dossier
+    /**
+     * Returns a dossier by reference when the user has access to it.
+     */
+    public function findOneByReferenceNumberAndUser(string $referenceNumber, User $user): ?Dossier 
     {
         return $this->createQueryBuilder('d')
-           ->andWhere('d.referenceNumber = :referenceNumber')
-           ->setParameter('referenceNumber', $referenceNumber)
-           ->getQuery()
-           ->getOneOrNullResult();
+            ->innerJoin('d.dossierUsers', 'dossierUser')
+            ->andWhere('d.referenceNumber = :referenceNumber')
+            ->andWhere('dossierUser.user = :user')
+            ->setParameter('referenceNumber', $referenceNumber)
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     /**

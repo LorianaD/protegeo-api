@@ -126,4 +126,15 @@ class DossierService
         $this->em->flush();
     }
 
+    /**
+     * Returns a dossier by reference for the authenticated user.
+     */
+    public function getByReferenceNumberAndUser(string $referenceNumber, User $user): ?Dossier
+    {
+        return $this->dossierRepository->findOneByReferenceNumberAndUser(
+            $referenceNumber,
+            $user
+        );
+    }
+
 }
