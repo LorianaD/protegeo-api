@@ -4,6 +4,7 @@ namespace App\Service\ManagementAccount;
 
 use App\Entity\Dossier;
 use App\Entity\ManagementAccount;
+use App\Enum\ManagementAccountStatus;
 use App\Repository\ManagementAccountRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -37,6 +38,25 @@ class ManagementAccountService
     {
         $this->em->persist($managementAccount);
         $this->em->flush();
+
+        return $managementAccount;
+    }
+
+    /**
+     * Creates the initial management account for a new dossier.
+     */
+    public function createInitial(Dossier $dossier): ManagementAccount
+    {
+        $year = $dossier->getOpenedAt()->format('Y');
+
+        $managementAccount = new ManagementAccount();
+
+        $managementAccount
+            ->setDossier($dossier)
+            ->setYear(new \DateTime($year . '-01-01'))
+            ->setStatus(ManagementAccountStatus::IN_PROGRESS);
+
+        $this->em->persist($managementAccount);
 
         return $managementAccount;
     }

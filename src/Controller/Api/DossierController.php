@@ -8,6 +8,7 @@ use App\Service\Dossier\DossierUserService;
 use App\Service\Formatter\DossierFormatter;
 use App\Service\Formatter\MeasureProtectionFormatter;
 use App\Service\Formatter\ProtectedPersonFormatter;
+use App\Service\ManagementAccount\ManagementAccountService;
 use App\Service\MeasureProtection\MeasureProtectionService;
 use App\Service\ProtectedPerson\ProtectedPersonService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ final class DossierController extends AbstractController
         private DossierUserService $dossierUserService,
         private ProtectedPersonService $protectedPersonService,
         private MeasureProtectionService $measureProtectionService,
+        private ManagementAccountService $managementAccountService,
         private DossierFormatter $dossierFormatter,
         private ProtectedPersonFormatter $protectedPersonFormatter,
         private MeasureProtectionFormatter $measureProtectionFormatter,
@@ -44,10 +46,31 @@ final class DossierController extends AbstractController
         $dossiersData = [];
 
         foreach ($dossierUsers as $dossierUser) {
-            $dossiersData[] = $this->dossierFormatter->formatForUserList(
-                $dossierUser->getDossier(),
+            $dossier = $dossierUser->getDossier();
+
+            $dossierData = $this->dossierFormatter->formatForUserList(
+                $dossier,
                 $dossierUser->getRoleType()
             );
+
+            try {
+                $measureProtection = $this
+                    ->measureProtectionService
+                    ->getCurrentByDossierId(
+                        $dossier->getId(),
+                        $user
+                    );
+
+                $dossierData['measure'] = $this
+                    ->measureProtectionFormatter
+                    ->format(
+                        $measureProtection
+                    );
+            } catch (\RuntimeException) {
+                $dossierData['measure'] = null;
+            }
+
+            $dossiersData[] = $dossierData;
         }
 
         return $this->json(
@@ -90,6 +113,10 @@ final class DossierController extends AbstractController
             $measureProtection = $this->measureProtectionService->create(
                 $dossier,
                 $data['measure_protection']
+            );
+
+            $this->managementAccountService->createInitial(
+                $dossier
             );
 
             $this->dossierService->save();

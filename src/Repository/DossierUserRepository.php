@@ -115,6 +115,8 @@ class DossierUserRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('du')
             ->innerJoin('du.dossier', 'd')
             ->addSelect('d')
+            ->leftJoin('d.protectedPerson', 'protectedPerson')
+            ->addSelect('protectedPerson')
             ->andWhere('du.user = :user')
             ->andWhere('d.closedAt IS NULL')
             ->setParameter('user', $user)
