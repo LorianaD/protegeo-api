@@ -52,16 +52,20 @@ class MeasureProtectionRepository extends ServiceEntityRepository
 
     public function findCurrentByDossierIdAndUser(int $dossierId, User $user) : ?MeasureProtection
     {
-        return $this->createQueryBuilder('measureProtection')
-            ->innerJoin('measureProtection.dossier', 'dossier')
-            ->innerJoin('dossier.dossierUsers', 'dossierUser')
-            ->addSelect('dossier')
-            ->andWhere('dossier.id = :dossierId')
-            ->andWhere('dossierUser.user = :user')
-            ->andWhere('measureProtection.endDate IS NULL')
+        $today = new \DateTimeImmutable();
+
+        return $this->createQueryBuilder('m')
+            ->innerJoin('m.dossier', 'd')
+            ->innerJoin('d.dossierUsers', 'du')
+            ->addSelect('d')
+            ->andWhere('d.id = :dossierId')
+            ->andWhere('du.user = :user')
+            ->andWhere('m.startDate <= :today')
+            ->andWhere('(m.endDate IS NULL OR m.endDate >= :today)')
             ->setParameter('dossierId', $dossierId)
             ->setParameter('user', $user)
-            ->orderBy('measureProtection.startDate', 'DESC')
+            ->setParameter('today', $today)
+            ->orderBy('m.startDate', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

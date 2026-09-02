@@ -60,10 +60,8 @@ class ContactsRepository extends ServiceEntityRepository
      * Searching by both the contact identifier and the protected person
      * prevents retrieving a contact associated with another dossier.
      */
-    public function findOneByIdAndProtectedPerson(
-        int $contactId,
-        ProtectedPerson $protectedPerson
-    ): ?Contacts {
+    public function findOneByIdAndProtectedPerson(int $contactId, ProtectedPerson $protectedPerson): ?Contacts
+    {
         return $this->createQueryBuilder('c')
             ->andWhere('c.id = :contactId')
             ->andWhere('c.protectedPerson = :protectedPerson')
