@@ -6,31 +6,34 @@ use App\Entity\ProtectedPerson;
 
 class ProtectedPersonFormatter
 {
+    /**
+     * Formats a protected person for the API response.
+     */
     public function format(ProtectedPerson $protectedPerson): array
     {
         return [
             'id' => $protectedPerson->getId(),
-            'photoUrl' => $protectedPerson->getPhotoUrl(),
+            'photo_url' => $protectedPerson->getPhotoUrl(),
             'civility' => $protectedPerson->getCivility(),
             'firstname' => $protectedPerson->getFirstname(),
             'lastname' => $protectedPerson->getLastname(),
-            'birthDate' => $protectedPerson->getBirthDate()?->format('Y-m-d'),
-            'birthPlace' => $protectedPerson->getBirthPlace(),
+            'birth_date' => $protectedPerson->getBirthDate()?->format('Y-m-d'),
+            'birth_place' => $protectedPerson->getBirthPlace(),
             'nationality' => $protectedPerson->getNationality(),
-            'familySituation' => $protectedPerson->getFamilySituation(),
-            'childrenSituation' => $protectedPerson->getChildrenSituation(),
+            'family_situation' => $protectedPerson->getFamilySituation(),
+            'children_situation' => $protectedPerson->getChildrenSituation(),
             'address' => $protectedPerson->getAddress(),
-            'postalCode' => $protectedPerson->getPostalCode(),
+            'postal_code' => $protectedPerson->getPostalCode(),
             'city' => $protectedPerson->getCity(),
-            'phoneNumber' => $protectedPerson->getPhoneNumber(),
+            'phone_number' => $protectedPerson->getPhoneNumber(),
             'email' => $protectedPerson->getEmail(),
             'profession' => $protectedPerson->getProfession(),
-            'autonomyLevel' => $protectedPerson->getAutonomyLevel(),
-            'situationSummary' => $protectedPerson->getSituationSummary(),
-            'deceasedAt' => $protectedPerson->getDeceasedAt()?->format('Y-m-d'),
-            'familyNote' => $protectedPerson->getFamilyNote(),
-            'createdAt' => $protectedPerson->getCreatedAt()?->format(\DateTimeInterface::ATOM),
-            'updatedAt' => $protectedPerson->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
+            'autonomy_level' => $protectedPerson->getAutonomyLevel(),
+            'situation_summary' => $protectedPerson->getSituationSummary(),
+            'deceased_at' => $protectedPerson->getDeceasedAt()?->format('Y-m-d'),
+            'family_note' => $protectedPerson->getFamilyNote(),
+            'created_at' => $protectedPerson->getCreatedAt()?->format(\DateTimeInterface::ATOM),
+            'updated_at' => $protectedPerson->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
         ];
     }
 }
