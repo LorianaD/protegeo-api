@@ -9,10 +9,11 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class UserService
 {
-    public function __construct(private EntityManagerInterface $em, private UserPasswordHasherInterface $passwordHasher, private PasswordValidator $passwordValidator)
-    {
-        
-    }
+    public function __construct(
+        private EntityManagerInterface $em, 
+        private UserPasswordHasherInterface $passwordHasher, 
+        private PasswordValidator $passwordValidator
+    ){}
 
     public function getProfile(User $user): array
     {
@@ -50,7 +51,7 @@ class UserService
         ];
     }
 
-    public function updateProfile(User $user, array $data): array
+    public function updateProfile(User $user, array $data): User
     {
         $user->setCivility($data['civility'] ?? $user->getCivility());
         $user->setFirstname($data['firstname'] ?? $user->getFirstname());
@@ -73,7 +74,7 @@ class UserService
 
         $this->em->flush();
 
-        return $this->getProfile($user);
+        return $user;
     }
 
     public function updatePassword(User $user, array $data): void
@@ -84,7 +85,9 @@ class UserService
         );
 
         if (!$isPasswordValid) {
-            throw new \Exception('Le mot de passe actuel est incorrect.');
+            throw new \InvalidArgumentException(
+                'Le mot de passe actuel est incorrect.'
+            );
         }
 
         $newPassword = $data['new_password'] ?? '';

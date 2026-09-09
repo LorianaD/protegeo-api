@@ -93,16 +93,10 @@ class BankAccountService
             $bankAccount->setAccountLabel($data['account_label']);
         }
 
-        if (array_key_exists('account_number_masked', $data)) {
-            $bankAccount->setAccountNumberMasked($data['account_number_masked']);
-        }
-
-        if (array_key_exists('iban_masked', $data)) {
-            $bankAccount->setIbanMasked($data['iban_masked']);
-        }
-
-        if (array_key_exists('bic', $data)) {
-            $bankAccount->setBic($data['bic']);
+        if (array_key_exists('account_number', $data)) {
+            $bankAccount->setAccountNumberMasked(
+                $this->maskAccountNumber($data['account_number'])
+            );
         }
 
         if (array_key_exists('opened_at', $data)) {
@@ -190,5 +184,28 @@ class BankAccountService
                 'La date de clôture doit être postérieure ou égale à la date d’ouverture.'
             );
         }
+    }
+
+    /**
+     * Masks a bank account number and keeps only the last 3 characters visible.
+     */
+    private function maskAccountNumber(string $accountNumber): string
+    {
+        $cleanAccountNumber = preg_replace('/\s+/', '', trim($accountNumber));
+
+        if ($cleanAccountNumber === null || $cleanAccountNumber === '') {
+            return '';
+        }
+
+        $visibleLength = 3;
+
+        if (strlen($cleanAccountNumber) <= $visibleLength) {
+            return $cleanAccountNumber;
+        }
+
+        $hiddenLength = strlen($cleanAccountNumber) - $visibleLength;
+
+        return str_repeat('x', $hiddenLength)
+            . substr($cleanAccountNumber, -$visibleLength);
     }
 }

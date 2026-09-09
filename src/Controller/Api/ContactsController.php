@@ -2,9 +2,8 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\User;
+use App\Entity\Contacts;
 use App\Service\Contacts\ContactsService;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -14,16 +13,9 @@ use Symfony\Component\Routing\Attribute\Route;
  *
  * Each contact is linked to the protected person associated with the dossier.
  * Access control and business rules are delegated to the ContactsService.
- *
- * Available operations:
- * - list contacts, optionally filtered by category;
- * - retrieve a specific contact;
- * - create a contact;
- * - partially update a contact;
- * - delete a contact.
  */
 #[Route('/api/dossiers/{dossierId}/contacts')]
-class ContactsController extends AbstractController
+class ContactsController extends ApiController
 {
     public function __construct(
         private ContactsService $contactsService,
@@ -31,9 +23,6 @@ class ContactsController extends AbstractController
 
     /**
      * Returns all contacts associated with the given dossier.
-     *
-     * The optional "contact_category" query parameter can be used to filter
-     * contacts by dashboard section, such as family, professional or organization.
      */
     #[Route('', name: 'api_contacts_index', methods: ['GET'])]
     public function index(int $dossierId, Request $request): JsonResponse
@@ -49,11 +38,14 @@ class ContactsController extends AbstractController
                 $contactCategory
             );
 
-            $formattedContacts = $this->contactsService->formatContacts($contacts);
+            $contactsData = array_map(
+                fn (Contacts $contact): array => $this->formatContact($contact),
+                $contacts
+            );
 
             return $this->json([
-                'contacts' => $formattedContacts,
-            ]);
+                'contacts' => $contactsData,
+            ], JsonResponse::HTTP_OK);
         } catch (\RuntimeException $exception) {
             return $this->json([
                 'message' => $exception->getMessage(),
@@ -62,10 +54,7 @@ class ContactsController extends AbstractController
     }
 
     /**
-     * Returns a single contact belonging to the given dossier.
-     *
-     * The service verifies that the authenticated user can access the dossier
-     * and that the requested contact belongs to its protected person.
+     * Returns one contact belonging to the given dossier.
      */
     #[Route('/{contactId}', name: 'api_contacts_show', methods: ['GET'])]
     public function show(int $dossierId, int $contactId): JsonResponse
@@ -79,8 +68,11 @@ class ContactsController extends AbstractController
                 $user
             );
 
+            $contactData = $this->formatContact($contact);
+
             return $this->json(
-                $this->contactsService->formatContact($contact)
+                $contactData,
+                JsonResponse::HTTP_OK
             );
         } catch (\RuntimeException $exception) {
             return $this->json([
@@ -91,9 +83,6 @@ class ContactsController extends AbstractController
 
     /**
      * Creates a new contact for the protected person linked to the dossier.
-     *
-     * Request data is validated and processed by the ContactsService before
-     * the contact is persisted.
      */
     #[Route('', name: 'api_contacts_create', methods: ['POST'])]
     public function create(int $dossierId, Request $request): JsonResponse
@@ -108,14 +97,16 @@ class ContactsController extends AbstractController
                 $user
             );
 
+            $contactData = $this->formatContact($contact);
+
             return $this->json([
                 'message' => 'Le contact a été créé avec succès.',
-                'contact' => $this->contactsService->formatContact($contact),
-            ], 201);
+                'contact' => $contactData,
+            ], JsonResponse::HTTP_CREATED);
         } catch (\InvalidArgumentException $exception) {
             return $this->json([
                 'message' => $exception->getMessage(),
-            ], 400);
+            ], JsonResponse::HTTP_BAD_REQUEST);
         } catch (\RuntimeException $exception) {
             return $this->json([
                 'message' => $exception->getMessage(),
@@ -125,9 +116,6 @@ class ContactsController extends AbstractController
 
     /**
      * Partially updates an existing contact.
-     *
-     * Only fields included in the PATCH request are updated. Missing fields
-     * keep their current values.
      */
     #[Route('/{contactId}', name: 'api_contacts_update', methods: ['PATCH'])]
     public function update(int $dossierId, int $contactId, Request $request): JsonResponse
@@ -143,14 +131,16 @@ class ContactsController extends AbstractController
                 $user
             );
 
+            $contactData = $this->formatContact($contact);
+
             return $this->json([
                 'message' => 'Le contact a été modifié avec succès.',
-                'contact' => $this->contactsService->formatContact($contact),
-            ]);
+                'contact' => $contactData,
+            ], JsonResponse::HTTP_OK);
         } catch (\InvalidArgumentException $exception) {
             return $this->json([
                 'message' => $exception->getMessage(),
-            ], 400);
+            ], JsonResponse::HTTP_BAD_REQUEST);
         } catch (\RuntimeException $exception) {
             return $this->json([
                 'message' => $exception->getMessage(),
@@ -160,9 +150,6 @@ class ContactsController extends AbstractController
 
     /**
      * Deletes a contact from the given dossier.
-     *
-     * Access rights and contact ownership are checked by the service before
-     * the contact is removed.
      */
     #[Route('/{contactId}', name: 'api_contacts_delete', methods: ['DELETE'])]
     public function delete(int $dossierId, int $contactId): JsonResponse
@@ -178,7 +165,7 @@ class ContactsController extends AbstractController
 
             return $this->json([
                 'message' => 'Le contact a été supprimé avec succès.',
-            ]);
+            ], JsonResponse::HTTP_OK);
         } catch (\RuntimeException $exception) {
             return $this->json([
                 'message' => $exception->getMessage(),
@@ -187,37 +174,43 @@ class ContactsController extends AbstractController
     }
 
     /**
-     * Returns the currently authenticated application user.
-     *
-     * @throws \RuntimeException When no valid User instance is authenticated.
-     */
-    private function getAuthenticatedUser(): User
-    {
-        $user = $this->getUser();
-
-        if (!$user instanceof User) {
-            throw new \RuntimeException(
-                'Utilisateur non authentifié.'
-            );
-        }
-
-        return $user;
-    }
-
-    /**
      * Converts known runtime exceptions into the appropriate HTTP status code.
-     *
-     * Authentication failures return 401, access-denied errors return 403,
-     * and missing dossier or contact resources return 404.
      */
     private function getRuntimeStatusCode(\RuntimeException $exception): int
     {
         return match ($exception->getMessage()) {
-            'Utilisateur non authentifié.' => 401,
-
-            'Vous n’avez pas accès à ce dossier.' => 403,
-
-            default => 404,
+            'Utilisateur non authentifié.' => JsonResponse::HTTP_UNAUTHORIZED,
+            'Vous n’avez pas accès à ce dossier.' => JsonResponse::HTTP_FORBIDDEN,
+            default => JsonResponse::HTTP_NOT_FOUND,
         };
+    }
+
+    /**
+     * Formats a contact for the API response.
+     */
+    private function formatContact(Contacts $contact): array
+    {
+        return [
+            'id' => $contact->getId(),
+            'contact_category' => $contact->getContactCategory(),
+            'contact_type' => $contact->getContactType(),
+            'firstname' => $contact->getFirstname(),
+            'lastname' => $contact->getLastname(),
+            'organization_name' => $contact->getOrganizationName(),
+            'job_function' => $contact->getJobFunction(),
+            'profession' => $contact->getProfession(),
+            'birth_date' => $contact->getBirthDate()?->format('Y-m-d'),
+            'birth_place' => $contact->getBirthPlace(),
+            'address' => $contact->getAddress(),
+            'phone' => $contact->getPhone(),
+            'email' => $contact->getEmail(),
+            'identifier' => $contact->getIdentifier(),
+            'contact_person' => $contact->getContactPerson(),
+            'protection_role' => $contact->getProtectionRole(),
+            'relation_type' => $contact->getRelationType(),
+            'note' => $contact->getNote(),
+            'created_at' => $contact->getCreatedAt()?->format(DATE_ATOM),
+            'updated_at' => $contact->getUpdatedAt()?->format(DATE_ATOM),
+        ];
     }
 }

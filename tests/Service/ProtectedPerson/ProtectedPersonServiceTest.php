@@ -5,6 +5,7 @@ namespace App\Tests\Service\ProtectedPerson;
 use App\Entity\Dossier;
 use App\Entity\ProtectedPerson;
 use App\Entity\User;
+use App\Enum\DossierUserRole;
 use App\Repository\ProtectedPersonRepository;
 use App\Service\Dossier\DossierService;
 use App\Service\ProtectedPerson\ProtectedPersonService;
@@ -304,7 +305,7 @@ class ProtectedPersonServiceTest extends KernelTestCase
             [
                 'referenceNumber' => $referenceNumber,
                 'openedAt' => '2026-07-22',
-                'roleType' => 'Curateur / Curatrice à la personne et aux biens',
+                'roleType' => DossierUserRole::CURATOR_PERSON_AND_PROPERTY,
             ],
             $this->user
         );

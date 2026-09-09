@@ -28,7 +28,7 @@ class AuthService
 
         $user = new User();
 
-        $user->setEmail($data['email']);
+        $user->setEmail($email);
         $user->setCivility($data['civility']);
         $user->setLastname($data['lastname']);
         $user->setFirstname($data['firstname']);

@@ -30,12 +30,6 @@ class BankAccount
     #[ORM\Column(length: 255)]
     private ?string $accountNumberMasked = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $ibanMasked = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $bic = null;
-
     #[ORM\Column]
     private ?\DateTimeImmutable $openedAt = null;
 
@@ -142,30 +136,6 @@ class BankAccount
     public function setAccountNumberMasked(string $accountNumberMasked): static
     {
         $this->accountNumberMasked = $accountNumberMasked;
-
-        return $this;
-    }
-
-    public function getIbanMasked(): ?string
-    {
-        return $this->ibanMasked;
-    }
-
-    public function setIbanMasked(?string $ibanMasked): static
-    {
-        $this->ibanMasked = $ibanMasked;
-
-        return $this;
-    }
-
-    public function getBic(): ?string
-    {
-        return $this->bic;
-    }
-
-    public function setBic(?string $bic): static
-    {
-        $this->bic = $bic;
 
         return $this;
     }

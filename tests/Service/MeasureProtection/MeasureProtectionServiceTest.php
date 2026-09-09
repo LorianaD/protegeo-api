@@ -5,6 +5,8 @@ namespace App\Tests\Service\MeasureProtection;
 use App\Entity\Dossier;
 use App\Entity\MeasureProtection;
 use App\Entity\User;
+use App\Enum\DossierUserRole;
+use App\Enum\MeasureProtectionType;
 use App\Repository\MeasureProtectionRepository;
 use App\Service\Dossier\DossierService;
 use App\Service\MeasureProtection\MeasureProtectionService;
@@ -105,7 +107,7 @@ class MeasureProtectionServiceTest extends KernelTestCase
         );
 
         $this->assertSame(
-            'Curatelle renforcée',
+            MeasureProtectionType::REINFORCED_CURATORSHIP,
             $measureProtection->getMeasureType()
         );
 
@@ -156,7 +158,7 @@ class MeasureProtectionServiceTest extends KernelTestCase
         $this->measureProtectionService->create(
             $this->dossier,
             [
-                'measure_type' => 'Curatelle renforcée',
+                'measure_type' => MeasureProtectionType::REINFORCED_CURATORSHIP,
                 'start_date' => '2026-07-15',
             ]
         );
@@ -172,7 +174,7 @@ class MeasureProtectionServiceTest extends KernelTestCase
         $this->measureProtectionService->create(
             $this->dossier,
             [
-                'measure_type' => 'Curatelle renforcée',
+                'measure_type' => MeasureProtectionType::REINFORCED_CURATORSHIP,
                 'judgment_date' => '2026-07-01',
             ]
         );
@@ -189,12 +191,12 @@ class MeasureProtectionServiceTest extends KernelTestCase
             ->update(
                 $measureProtection,
                 [
-                    'measure_type' => 'Tutelle',
+                    'measure_type' => MeasureProtectionType::GUARDIANSHIP,
                 ]
             );
 
         $this->assertSame(
-            'Tutelle',
+            MeasureProtectionType::GUARDIANSHIP,
             $updatedMeasureProtection->getMeasureType()
         );
     }
@@ -420,8 +422,7 @@ class MeasureProtectionServiceTest extends KernelTestCase
             [
                 'referenceNumber' => $referenceNumber,
                 'openedAt' => '2026-07-22',
-                'roleType' =>
-                    'Curateur / Curatrice à la personne et aux biens',
+                'roleType' => DossierUserRole::CURATOR_PERSON_AND_PROPERTY,
             ],
             $this->user
         );
@@ -439,7 +440,7 @@ class MeasureProtectionServiceTest extends KernelTestCase
         $measureProtection = $this->measureProtectionService->create(
             $dossier,
             [
-                'measure_type' => 'Curatelle renforcée',
+                'measure_type' => MeasureProtectionType::REINFORCED_CURATORSHIP,
                 'judgment_date' => '2026-07-01',
                 'start_date' => '2026-07-15',
                 'duration_years' => 5,
@@ -452,5 +453,18 @@ class MeasureProtectionServiceTest extends KernelTestCase
         $this->em->flush();
 
         return $measureProtection;
+    }
+
+    public function testGetCurrentMeasureProtectionFailsWhenNoneExists(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage(
+            'Aucune mesure de protection en cours n’a été trouvée.'
+        );
+
+        $this->measureProtectionService->getCurrentByDossierId(
+            $this->dossier->getId(),
+            $this->user
+        );
     }
 }

@@ -159,55 +159,6 @@ class ContactsService
     }
 
     /**
-     * Converts a contact entity into an API-friendly array.
-     *
-     * Dates are formatted consistently before being returned to the client.
-     */
-    public function formatContact(Contacts $contact): array
-    {
-        return [
-            'id' => $contact->getId(),
-            'contact_category' => $contact->getContactCategory(),
-            'contact_type' => $contact->getContactType(),
-            'firstname' => $contact->getFirstname(),
-            'lastname' => $contact->getLastname(),
-            'organization_name' => $contact->getOrganizationName(),
-            'job_function' => $contact->getJobFunction(),
-            'profession' => $contact->getProfession(),
-            'birth_date' => $contact->getBirthDate()?->format('Y-m-d'),
-            'birth_place' => $contact->getBirthPlace(),
-            'address' => $contact->getAddress(),
-            'phone' => $contact->getPhone(),
-            'email' => $contact->getEmail(),
-            'identifier' => $contact->getIdentifier(),
-            'contact_person' => $contact->getContactPerson(),
-            'protection_role' => $contact->getProtectionRole(),
-            'relation_type' => $contact->getRelationType(),
-            'note' => $contact->getNote(),
-            'created_at' => $contact->getCreatedAt()?->format(DATE_ATOM),
-            'updated_at' => $contact->getUpdatedAt()?->format(DATE_ATOM),
-        ];
-    }
-
-    /**
-     * Converts a list of contact entities into an API-friendly array.
-     *
-     * @param Contacts[] $contacts
-     *
-     * @return array
-     */
-    public function formatContacts(array $contacts): array
-    {
-        $formattedContacts = [];
-
-        foreach ($contacts as $contact) {
-            $formattedContacts[] = $this->formatContact($contact);
-        }
-
-        return $formattedContacts;
-    }
-
-    /**
      * Returns the protected person associated with a dossier.
      *
      * This method centralizes dossier lookup, access control and protected

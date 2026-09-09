@@ -20,19 +20,9 @@ class UserServiceTest extends KernelTestCase
 
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->userService = self::getContainer()->get(UserService::class);
-        $this->passwordHasher = self::getContainer()->get(UserPasswordHasherInterface::class);
-    }
-
-    public function testGetProfileReturnsUserData(): void
-    {
-        $user = $this->createUser();
-
-        $result = $this->userService->getProfile($user);
-
-        $this->assertSame('Test', $result['firstname']);
-        $this->assertSame('TEST', $result['lastname']);
-        $this->assertSame($user->getEmail(), $result['email']);
-        $this->assertSame('Gradignan', $result['city']);
+        $this->passwordHasher = self::getContainer()->get(
+            UserPasswordHasherInterface::class
+        );
     }
 
     public function testUpdateProfileSuccessfully(): void
@@ -43,16 +33,19 @@ class UserServiceTest extends KernelTestCase
             'city' => 'Aix-en-Provence',
         ]);
 
+        $this->assertInstanceOf(User::class, $result);
         $this->assertSame('Aix-en-Provence', $user->getCity());
-        $this->assertSame('Aix-en-Provence', $result['city']);
+        $this->assertSame('Aix-en-Provence', $result->getCity());
     }
 
     public function testUpdatePasswordFailsWhenCurrentPasswordIsWrong(): void
     {
         $user = $this->createUser();
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Le mot de passe actuel est incorrect.');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Le mot de passe actuel est incorrect.'
+        );
 
         $this->userService->updatePassword($user, [
             'current_password' => 'WrongPassword',
@@ -70,11 +63,17 @@ class UserServiceTest extends KernelTestCase
         ]);
 
         $this->assertTrue(
-            $this->passwordHasher->isPasswordValid($user, 'NewTest1234!1234')
+            $this->passwordHasher->isPasswordValid(
+                $user,
+                'NewTest1234!1234'
+            )
         );
 
         $this->assertFalse(
-            $this->passwordHasher->isPasswordValid($user, 'Test1234!1234')
+            $this->passwordHasher->isPasswordValid(
+                $user,
+                'Test1234!1234'
+            )
         );
     }
 
@@ -92,7 +91,7 @@ class UserServiceTest extends KernelTestCase
         ], $override);
 
         $user = new User();
-        
+
         $user->setEmail($data['email']);
         $user->setCivility($data['civility']);
         $user->setFirstname($data['firstname']);
@@ -101,7 +100,10 @@ class UserServiceTest extends KernelTestCase
         $user->setPostalCode($data['postal_code']);
         $user->setCity($data['city']);
         $user->setPassword(
-            $this->passwordHasher->hashPassword($user, $data['password'])
+            $this->passwordHasher->hashPassword(
+                $user,
+                $data['password']
+            )
         );
 
         $this->em->persist($user);

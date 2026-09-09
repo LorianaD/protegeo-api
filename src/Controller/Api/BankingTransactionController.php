@@ -9,13 +9,12 @@ use App\Repository\BankingTransactionRepository;
 use App\Repository\DossierRepository;
 use App\Service\BankingTransaction\BankingTransactionService;
 use DateTimeImmutable;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/dossiers/{dossierId}/banking-transactions', name: 'api_banking_transactions_')]
-class BankingTransactionController extends AbstractController
+class BankingTransactionController extends ApiController
 {
     public function __construct(
         private BankingTransactionService $bankingTransactionService,
@@ -30,25 +29,17 @@ class BankingTransactionController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(int $dossierId, Request $request): JsonResponse
     {
-        $user = $this->getUser();
-
-        if (!$user) {
-            return $this->json(
-                ['error' => 'Utilisateur non authentifié.'],
-                JsonResponse::HTTP_UNAUTHORIZED
-            );
-        }
-
-        $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
-
-        if (!$dossier) {
-            return $this->json(
-                ['error' => 'Dossier introuvable ou accès refusé.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
         try {
+            $user = $this->getAuthenticatedUser();
+
+            $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
+
+            if (!$dossier) {
+                return $this->json([
+                    'message' => 'Dossier introuvable ou accès refusé.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
             $bankAccountId = $request->query->get('bank_account_id');
             $startDateValue = $request->query->get('start_date');
             $endDateValue = $request->query->get('end_date');
@@ -59,46 +50,59 @@ class BankingTransactionController extends AbstractController
             $hasPeriodFilter = $hasStartDate || $hasEndDate;
 
             if ($hasBankAccountFilter) {
-                $bankAccount = $this->bankAccountRepository->findOneByIdAndDossierId((int) $bankAccountId, $dossierId);
+                $bankAccount = $this->bankAccountRepository->findOneByIdAndDossierId(
+                    (int) $bankAccountId,
+                    $dossierId
+                );
 
                 if (!$bankAccount) {
-                    return $this->json(
-                        ['error' => 'Compte bancaire introuvable.'],
-                        JsonResponse::HTTP_NOT_FOUND
-                    );
+                    return $this->json([
+                        'message' => 'Compte bancaire introuvable.',
+                    ], JsonResponse::HTTP_NOT_FOUND);
                 }
 
-                $bankingTransactions = $this->bankingTransactionService->getByBankAccountId($bankAccount->getId());
+                $bankingTransactions = $this->bankingTransactionService->getByBankAccountId(
+                    $bankAccount->getId()
+                );
             } elseif ($hasPeriodFilter) {
                 $hasCompletePeriod = $hasStartDate && $hasEndDate;
 
                 if (!$hasCompletePeriod) {
-                    return $this->json(
-                        ['error' => 'Les dates de début et de fin sont obligatoires pour filtrer par période.'],
-                        JsonResponse::HTTP_BAD_REQUEST
-                    );
+                    return $this->json([
+                        'message' => 'Les dates de début et de fin sont obligatoires pour filtrer par période.',
+                    ], JsonResponse::HTTP_BAD_REQUEST);
                 }
 
                 $startDate = $this->createDateFromValue($startDateValue);
                 $endDate = $this->createDateFromValue($endDateValue);
 
-                $bankingTransactions = $this->bankingTransactionService->getByDossierIdAndPeriod($dossierId, $startDate, $endDate);
+                $bankingTransactions = $this->bankingTransactionService->getByDossierIdAndPeriod(
+                    $dossierId,
+                    $startDate,
+                    $endDate
+                );
             } else {
                 $bankingTransactions = $this->bankingTransactionService->getByDossierId($dossierId);
             }
 
+            $bankingTransactionsData = array_map(
+                fn (BankingTransaction $bankingTransaction): array =>
+                    $this->formatBankingTransaction($bankingTransaction),
+                $bankingTransactions
+            );
+
             return $this->json(
-                array_map(
-                    fn (BankingTransaction $bankingTransaction): array => $this->formatBankingTransaction($bankingTransaction),
-                    $bankingTransactions
-                ),
+                $bankingTransactionsData,
                 JsonResponse::HTTP_OK
             );
         } catch (\InvalidArgumentException $exception) {
-            return $this->json(
-                ['error' => $exception->getMessage()],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        } catch (\RuntimeException $exception) {
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_UNAUTHORIZED);
         }
     }
 
@@ -108,37 +112,39 @@ class BankingTransactionController extends AbstractController
     #[Route('/{bankingTransactionId}', name: 'show', methods: ['GET'])]
     public function show(int $dossierId, int $bankingTransactionId): JsonResponse
     {
-        $user = $this->getUser();
+        try {
+            $user = $this->getAuthenticatedUser();
 
-        if (!$user) {
-            return $this->json(
-                ['error' => 'Utilisateur non authentifié.'],
-                JsonResponse::HTTP_UNAUTHORIZED
+            $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
+
+            if (!$dossier) {
+                return $this->json([
+                    'message' => 'Dossier introuvable ou accès refusé.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $bankingTransaction = $this->bankingTransactionRepository->getOneByIdAndDossierId(
+                $bankingTransactionId,
+                $dossierId
             );
-        }
 
-        $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
+            if (!$bankingTransaction) {
+                return $this->json([
+                    'message' => 'Mouvement bancaire introuvable.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
 
-        if (!$dossier) {
+            $bankingTransactionData = $this->formatBankingTransaction($bankingTransaction);
+
             return $this->json(
-                ['error' => 'Dossier introuvable ou accès refusé.'],
-                JsonResponse::HTTP_NOT_FOUND
+                $bankingTransactionData,
+                JsonResponse::HTTP_OK
             );
+        } catch (\RuntimeException $exception) {
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_UNAUTHORIZED);
         }
-
-        $bankingTransaction = $this->bankingTransactionRepository->getOneByIdAndDossierId($bankingTransactionId, $dossierId);
-
-        if (!$bankingTransaction) {
-            return $this->json(
-                ['error' => 'Mouvement bancaire introuvable.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        return $this->json(
-            $this->formatBankingTransaction($bankingTransaction),
-            JsonResponse::HTTP_OK
-        );
     }
 
     /**
@@ -147,80 +153,86 @@ class BankingTransactionController extends AbstractController
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(int $dossierId, Request $request): JsonResponse
     {
-        $user = $this->getUser();
-
-        if (!$user) {
-            return $this->json(
-                ['error' => 'Utilisateur non authentifié.'],
-                JsonResponse::HTTP_UNAUTHORIZED
-            );
-        }
-
-        $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
-
-        if (!$dossier) {
-            return $this->json(
-                ['error' => 'Dossier introuvable ou accès refusé.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        $data = json_decode($request->getContent(), true);
-
-        if (!is_array($data)) {
-            return $this->json(
-                ['error' => 'Les données envoyées sont invalides.'],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
-        }
-
-        $sourceBankAccountId = $data['source_bank_account_id'] ?? null;
-        $destinationBankAccountId = $data['destination_bank_account_id'] ?? null;
-
-        if (!is_int($sourceBankAccountId)) {
-            return $this->json(
-                ['error' => 'Le compte bancaire source est obligatoire.'],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
-        }
-
-        if (!is_int($destinationBankAccountId)) {
-            return $this->json(
-                ['error' => 'Le compte bancaire destinataire est obligatoire.'],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
-        }
-
-        $sourceBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId((int) $sourceBankAccountId, $dossierId);
-
-        if (!$sourceBankAccount) {
-            return $this->json(
-                ['error' => 'Compte bancaire source introuvable.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        $destinationBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId((int) $destinationBankAccountId, $dossierId);
-
-        if (!$destinationBankAccount) {
-            return $this->json(
-                ['error' => 'Compte bancaire destinataire introuvable.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
         try {
-            $bankingTransaction = $this->bankingTransactionService->create($sourceBankAccount, $destinationBankAccount, $data);
+            $user = $this->getAuthenticatedUser();
+
+            $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
+
+            if (!$dossier) {
+                return $this->json([
+                    'message' => 'Dossier introuvable ou accès refusé.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $data = json_decode($request->getContent(), true);
+
+            if (!is_array($data)) {
+                return $this->json([
+                    'message' => 'Les données envoyées sont invalides.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $sourceBankAccountId = $data['source_bank_account_id'] ?? null;
+            $destinationBankAccountId = $data['destination_bank_account_id'] ?? null;
+
+            $hasSourceBankAccountId = is_int($sourceBankAccountId);
+
+            if (!$hasSourceBankAccountId) {
+                return $this->json([
+                    'message' => 'Le compte bancaire source est obligatoire.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $hasDestinationBankAccountId = is_int($destinationBankAccountId);
+
+            if (!$hasDestinationBankAccountId) {
+                return $this->json([
+                    'message' => 'Le compte bancaire destinataire est obligatoire.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $sourceBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId(
+                $sourceBankAccountId,
+                $dossierId
+            );
+
+            if (!$sourceBankAccount) {
+                return $this->json([
+                    'message' => 'Compte bancaire source introuvable.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $destinationBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId(
+                $destinationBankAccountId,
+                $dossierId
+            );
+
+            if (!$destinationBankAccount) {
+                return $this->json([
+                    'message' => 'Compte bancaire destinataire introuvable.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $bankingTransaction = $this->bankingTransactionService->create(
+                $sourceBankAccount,
+                $destinationBankAccount,
+                $data
+            );
+
+            $bankingTransactionData = $this->formatBankingTransaction($bankingTransaction);
 
             return $this->json(
-                $this->formatBankingTransaction($bankingTransaction),
+                $bankingTransactionData,
                 JsonResponse::HTTP_CREATED
             );
         } catch (\InvalidArgumentException $exception) {
-            return $this->json(
-                ['error' => $exception->getMessage()],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        } catch (\RuntimeException $exception) {
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_UNAUTHORIZED);
         }
     }
 
@@ -230,99 +242,104 @@ class BankingTransactionController extends AbstractController
     #[Route('/{bankingTransactionId}', name: 'update', methods: ['PATCH'])]
     public function update(int $dossierId, int $bankingTransactionId, Request $request): JsonResponse
     {
-        $user = $this->getUser();
-
-        if (!$user) {
-            return $this->json(
-                ['error' => 'Utilisateur non authentifié.'],
-                JsonResponse::HTTP_UNAUTHORIZED
-            );
-        }
-
-        $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
-
-        if (!$dossier) {
-            return $this->json(
-                ['error' => 'Dossier introuvable ou accès refusé.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        $bankingTransaction = $this->bankingTransactionRepository->getOneByIdAndDossierId($bankingTransactionId, $dossierId);
-
-        if (!$bankingTransaction) {
-            return $this->json(
-                ['error' => 'Mouvement bancaire introuvable.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        $data = json_decode($request->getContent(), true);
-
-        if (!is_array($data)) {
-            return $this->json(
-                ['error' => 'Les données envoyées sont invalides.'],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
-        }
-
-        $sourceBankAccount = $bankingTransaction->getSourceBankAccount();
-        $destinationBankAccount = $bankingTransaction->getDestinationBankAccount();
-
-        if (array_key_exists('source_bank_account_id', $data)) {
-            $sourceBankAccountId = $data['source_bank_account_id'];
-            $hasValidSourceBankAccountId = filter_var($sourceBankAccountId, FILTER_VALIDATE_INT) !== false;
-
-            if (!$hasValidSourceBankAccountId) {
-                return $this->json(
-                    ['error' => 'Le compte bancaire source est invalide.'],
-                    JsonResponse::HTTP_BAD_REQUEST
-                );
-            }
-
-            $sourceBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId((int) $sourceBankAccountId, $dossierId);
-
-            if (!$sourceBankAccount) {
-                return $this->json(
-                    ['error' => 'Compte bancaire source introuvable.'],
-                    JsonResponse::HTTP_NOT_FOUND
-                );
-            }
-        }
-
-        if (array_key_exists('destination_bank_account_id', $data)) {
-            $destinationBankAccountId = $data['destination_bank_account_id'];
-            $hasValidDestinationBankAccountId = filter_var($destinationBankAccountId, FILTER_VALIDATE_INT) !== false;
-
-            if (!$hasValidDestinationBankAccountId) {
-                return $this->json(
-                    ['error' => 'Le compte bancaire destinataire est invalide.'],
-                    JsonResponse::HTTP_BAD_REQUEST
-                );
-            }
-
-            $destinationBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId((int) $destinationBankAccountId, $dossierId);
-
-            if (!$destinationBankAccount) {
-                return $this->json(
-                    ['error' => 'Compte bancaire destinataire introuvable.'],
-                    JsonResponse::HTTP_NOT_FOUND
-                );
-            }
-        }
-
         try {
-            $bankingTransaction = $this->bankingTransactionService->update($bankingTransaction, $sourceBankAccount, $destinationBankAccount, $data);
+            $user = $this->getAuthenticatedUser();
+
+            $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
+
+            if (!$dossier) {
+                return $this->json([
+                    'message' => 'Dossier introuvable ou accès refusé.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $bankingTransaction = $this->bankingTransactionRepository->getOneByIdAndDossierId(
+                $bankingTransactionId,
+                $dossierId
+            );
+
+            if (!$bankingTransaction) {
+                return $this->json([
+                    'message' => 'Mouvement bancaire introuvable.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $data = json_decode($request->getContent(), true);
+
+            if (!is_array($data)) {
+                return $this->json([
+                    'message' => 'Les données envoyées sont invalides.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $sourceBankAccount = $bankingTransaction->getSourceBankAccount();
+            $destinationBankAccount = $bankingTransaction->getDestinationBankAccount();
+
+            if (array_key_exists('source_bank_account_id', $data)) {
+                $sourceBankAccountId = $data['source_bank_account_id'];
+                $hasValidSourceBankAccountId = filter_var($sourceBankAccountId, FILTER_VALIDATE_INT) !== false;
+
+                if (!$hasValidSourceBankAccountId) {
+                    return $this->json([
+                        'message' => 'Le compte bancaire source est invalide.',
+                    ], JsonResponse::HTTP_BAD_REQUEST);
+                }
+
+                $sourceBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId(
+                    (int) $sourceBankAccountId,
+                    $dossierId
+                );
+
+                if (!$sourceBankAccount) {
+                    return $this->json([
+                        'message' => 'Compte bancaire source introuvable.',
+                    ], JsonResponse::HTTP_NOT_FOUND);
+                }
+            }
+
+            if (array_key_exists('destination_bank_account_id', $data)) {
+                $destinationBankAccountId = $data['destination_bank_account_id'];
+                $hasValidDestinationBankAccountId = filter_var($destinationBankAccountId, FILTER_VALIDATE_INT) !== false;
+
+                if (!$hasValidDestinationBankAccountId) {
+                    return $this->json([
+                        'message' => 'Le compte bancaire destinataire est invalide.',
+                    ], JsonResponse::HTTP_BAD_REQUEST);
+                }
+
+                $destinationBankAccount = $this->bankAccountRepository->findOneByIdAndDossierId(
+                    (int) $destinationBankAccountId,
+                    $dossierId
+                );
+
+                if (!$destinationBankAccount) {
+                    return $this->json([
+                        'message' => 'Compte bancaire destinataire introuvable.',
+                    ], JsonResponse::HTTP_NOT_FOUND);
+                }
+            }
+
+            $bankingTransaction = $this->bankingTransactionService->update(
+                $bankingTransaction,
+                $sourceBankAccount,
+                $destinationBankAccount,
+                $data
+            );
+
+            $bankingTransactionData = $this->formatBankingTransaction($bankingTransaction);
 
             return $this->json(
-                $this->formatBankingTransaction($bankingTransaction),
+                $bankingTransactionData,
                 JsonResponse::HTTP_OK
             );
         } catch (\InvalidArgumentException $exception) {
-            return $this->json(
-                ['error' => $exception->getMessage()],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        } catch (\RuntimeException $exception) {
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_UNAUTHORIZED);
         }
     }
 
@@ -332,39 +349,38 @@ class BankingTransactionController extends AbstractController
     #[Route('/{bankingTransactionId}', name: 'delete', methods: ['DELETE'])]
     public function delete(int $dossierId, int $bankingTransactionId): JsonResponse
     {
-        $user = $this->getUser();
+        try {
+            $user = $this->getAuthenticatedUser();
 
-        if (!$user) {
-            return $this->json(
-                ['error' => 'Utilisateur non authentifié.'],
-                JsonResponse::HTTP_UNAUTHORIZED
+            $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
+
+            if (!$dossier) {
+                return $this->json([
+                    'message' => 'Dossier introuvable ou accès refusé.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $bankingTransaction = $this->bankingTransactionRepository->getOneByIdAndDossierId(
+                $bankingTransactionId,
+                $dossierId
             );
+
+            if (!$bankingTransaction) {
+                return $this->json([
+                    'message' => 'Mouvement bancaire introuvable.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $this->bankingTransactionService->delete($bankingTransaction);
+
+            return $this->json([
+                'message' => 'Mouvement bancaire supprimé avec succès.',
+            ], JsonResponse::HTTP_OK);
+        } catch (\RuntimeException $exception) {
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_UNAUTHORIZED);
         }
-
-        $dossier = $this->dossierRepository->findOneByIdAndUser($dossierId, $user);
-
-        if (!$dossier) {
-            return $this->json(
-                ['error' => 'Dossier introuvable ou accès refusé.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        $bankingTransaction = $this->bankingTransactionRepository->getOneByIdAndDossierId($bankingTransactionId, $dossierId);
-
-        if (!$bankingTransaction) {
-            return $this->json(
-                ['error' => 'Mouvement bancaire introuvable.'],
-                JsonResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        $this->bankingTransactionService->delete($bankingTransaction);
-
-        return $this->json(
-            ['message' => 'Mouvement bancaire supprimé avec succès.'],
-            JsonResponse::HTTP_OK
-        );
     }
 
     /**
@@ -381,9 +397,9 @@ class BankingTransactionController extends AbstractController
         }
 
         $date = DateTimeImmutable::createFromFormat('!Y-m-d', $dateValue);
-        $isValidDate = $date instanceof DateTimeImmutable && $date->format('Y-m-d') === $dateValue;
+        $hasValidDate = $date instanceof DateTimeImmutable && $date->format('Y-m-d') === $dateValue;
 
-        if (!$isValidDate) {
+        if (!$hasValidDate) {
             throw new \InvalidArgumentException(
                 'La date doit respecter le format AAAA-MM-JJ.'
             );

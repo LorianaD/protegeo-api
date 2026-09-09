@@ -11,11 +11,13 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/auth', name: 'api_auth_')]
 final class AuthController extends AbstractController
 {
+    public function __construct(
+        private AuthService $authService,
+    ) {}
 
-    public function __construct(private AuthService $authService)
-    {
-    }
-
+    /**
+     * Registers a new user account.
+     */
     #[Route('/register', name: 'register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
@@ -23,26 +25,21 @@ final class AuthController extends AbstractController
 
         if (!is_array($data)) {
             return $this->json([
-                "message" => "Données invalides"
-            ], 400);
+                'message' => 'Les données envoyées sont invalides.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         try {
-
             $user = $this->authService->register($data);
 
             return $this->json([
-                'message' => 'Compte créé avec succès',
+                'message' => 'Compte créé avec succès.',
                 'user' => $user,
-            ], 201);
-
-        } catch (\InvalidArgumentException $e) {
-
+            ], JsonResponse::HTTP_CREATED);
+        } catch (\InvalidArgumentException $exception) {
             return $this->json([
-                'message' => $e->getMessage(),
-            ], 400);
-
+                'message' => $exception->getMessage(),
+            ], JsonResponse::HTTP_BAD_REQUEST);
         }
-
     }
 }

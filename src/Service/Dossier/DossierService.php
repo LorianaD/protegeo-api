@@ -23,7 +23,9 @@ class DossierService
             );
         }
 
-        $existingDossier = $this->dossierRepository->findByReferenceNumber($referenceNumber);
+        $existingDossier = $this->dossierRepository->findOneBy([
+            'referenceNumber' => $referenceNumber,
+        ]);
 
         if ($existingDossier) {
             throw new \InvalidArgumentException(
@@ -79,8 +81,9 @@ class DossierService
         $newClosedAt = $data['closedAt'] ?? null;
 
         if ($newReferenceNumber) {
-            $existingDossier = $this->dossierRepository
-                ->findByReferenceNumber($newReferenceNumber);
+            $existingDossier = $this->dossierRepository->findOneBy([
+                'referenceNumber' => $newReferenceNumber,
+            ]);
 
             $id = $dossier->getId();
 

@@ -70,4 +70,31 @@ class ManagementAccountService
 
         $this->em->flush();
     }
+
+    /**
+     * Applies the management account status and keeps the sent date consistent.
+     */
+    public function applyStatus(
+        ManagementAccount $managementAccount,
+        string $status,
+        ?\DateTimeImmutable $sentAt = null
+    ): void {
+        if (!ManagementAccountStatus::isValid($status)) {
+            throw new \InvalidArgumentException(
+                'Le statut est invalide.'
+            );
+        }
+
+        $managementAccount->setStatus($status);
+
+        if ($status === ManagementAccountStatus::SENT) {
+            $managementAccount->setSentAt(
+                $sentAt ?? new \DateTimeImmutable()
+            );
+
+            return;
+        }
+
+        $managementAccount->setSentAt(null);
+    }
 }

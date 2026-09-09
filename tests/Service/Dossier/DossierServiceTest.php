@@ -4,6 +4,7 @@ namespace App\Tests\Service\Dossier;
 
 use App\Entity\Dossier;
 use App\Entity\User;
+use App\Enum\DossierUserRole;
 use App\Repository\DossierRepository;
 use App\Repository\DossierUserRepository;
 use App\Repository\UserRepository;
@@ -17,10 +18,10 @@ class DossierServiceTest extends KernelTestCase
     private EntityManagerInterface $em;
     private DossierService $dossierService;
     private DossierRepository $dossierRepository;
+    private DossierUserRepository $dossierUserRepository;
     private UserRepository $userRepository;
     private UserPasswordHasherInterface $passwordHasher;
     private User $user;
-    private DossierUserRepository $dossierUserRepository;
 
     protected function setUp(): void
     {
@@ -35,24 +36,24 @@ class DossierServiceTest extends KernelTestCase
         $this->userRepository = $container->get(UserRepository::class);
         $this->passwordHasher = $container->get(UserPasswordHasherInterface::class);
 
-        // We remove the linking sounds.
+        // Remove dossier-user relationships before deleting dossiers.
         $this->em->createQuery(
             'DELETE FROM App\Entity\DossierUser du'
         )->execute();
 
-        // We’re deleting the files.
+        // Remove dossiers created by previous tests.
         $this->em->createQuery(
             'DELETE FROM App\Entity\Dossier d'
         )->execute();
 
-        // The old test user is deleted, if one exists.
+        // Remove the dedicated test user if it already exists.
         $this->em->createQuery(
             'DELETE FROM App\Entity\User u WHERE u.email = :email'
         )
             ->setParameter('email', 'dossier-test@example.com')
             ->execute();
 
-        // Create the user account used by all tests.
+        // Create the user account used throughout the test suite.
         $this->user = new User();
 
         $this->user
@@ -72,16 +73,18 @@ class DossierServiceTest extends KernelTestCase
         $this->em->flush();
     }
 
-    // Valid creation test
-    public function testCreateDossier() : void
+    public function testCreateDossier(): void
     {
         $data = [
             'referenceNumber' => 'TEST-001',
             'openedAt' => '2026-07-16',
-            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
+            'roleType' => DossierUserRole::CURATOR_PERSON_AND_PROPERTY,
         ];
 
-        $dossier = $this->dossierService->createDossier($data, $this->user);
+        $dossier = $this->dossierService->createDossier(
+            $data,
+            $this->user
+        );
 
         $this->dossierService->save();
 
@@ -94,30 +97,34 @@ class DossierServiceTest extends KernelTestCase
         $this->assertNull($dossier->getClosedAt());
     }
 
-    // Reference number missing
-    public function testCreateDossierWithoutReferenceNumber() : void
+    public function testCreateDossierFailsWithoutReferenceNumber(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'Le numéro de référence est obligatoire.'
         );
 
-        $this->dossierService->createDossier([
-            'openedAt' => '2026-07-16',
-            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
-        ], $this->user);
+        $this->dossierService->createDossier(
+            [
+                'openedAt' => '2026-07-16',
+                'roleType' => DossierUserRole::CURATOR_PERSON_AND_PROPERTY,
+            ],
+            $this->user
+        );
     }
 
-    // Number already in use
-    public function testCreateDossierWithExistingReferenceNumber(): void
+    public function testCreateDossierFailsWithExistingReferenceNumber(): void
     {
         $data = [
             'referenceNumber' => 'TEST-002',
             'openedAt' => '2026-07-16',
-            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
+            'roleType' => DossierUserRole::CURATOR_PERSON_AND_PROPERTY,
         ];
 
-        $this->dossierService->createDossier($data, $this->user);
+        $this->dossierService->createDossier(
+            $data,
+            $this->user
+        );
 
         $this->dossierService->save();
 
@@ -127,12 +134,11 @@ class DossierServiceTest extends KernelTestCase
         );
 
         $this->dossierService->createDossier(
-            $data, 
+            $data,
             $this->user
         );
     }
 
-    // Changing the number
     public function testUpdateDossierReferenceNumber(): void
     {
         $dossier = $this->createDossierForTest('TEST-003');
@@ -150,8 +156,7 @@ class DossierServiceTest extends KernelTestCase
         );
     }
 
-    // Rejection of an already used reference
-    public function testUpdateDossierWithExistingReferenceNumber(): void
+    public function testUpdateDossierFailsWithExistingReferenceNumber(): void
     {
         $firstDossier = $this->createDossierForTest('TEST-005');
         $secondDossier = $this->createDossierForTest('TEST-006');
@@ -169,7 +174,6 @@ class DossierServiceTest extends KernelTestCase
         );
     }
 
-    // Closure of the case
     public function testCloseDossier(): void
     {
         $dossier = $this->createDossierForTest('TEST-007');
@@ -187,7 +191,6 @@ class DossierServiceTest extends KernelTestCase
         );
     }
 
-    // Reopening of the case
     public function testReopenDossier(): void
     {
         $dossier = $this->createDossierForTest('TEST-008');
@@ -206,10 +209,11 @@ class DossierServiceTest extends KernelTestCase
             ]
         );
 
-        $this->assertNull($updatedDossier->getClosedAt());
+        $this->assertNull(
+            $updatedDossier->getClosedAt()
+        );
     }
 
-    // Closing date prior to the opening date
     public function testClosedAtCannotBeBeforeOpenedAt(): void
     {
         $dossier = $this->createDossierForTest('TEST-009');
@@ -228,17 +232,22 @@ class DossierServiceTest extends KernelTestCase
         );
     }
 
+    /**
+     * Creates and persists a dossier used by the test suite.
+     */
     private function createDossierForTest(string $referenceNumber): Dossier
     {
-        $dossier = $this->dossierService->createDossier([
-            'referenceNumber' => $referenceNumber,
-            'openedAt' => '2026-07-16',
-            'roleType' => 'Curateur / Curatrice à la personne et aux biens',
-        ], $this->user);
+        $dossier = $this->dossierService->createDossier(
+            [
+                'referenceNumber' => $referenceNumber,
+                'openedAt' => '2026-07-16',
+                'roleType' => DossierUserRole::CURATOR_PERSON_AND_PROPERTY,
+            ],
+            $this->user
+        );
 
         $this->dossierService->save();
 
         return $dossier;
-
     }
 }
