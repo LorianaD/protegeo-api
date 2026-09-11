@@ -100,6 +100,28 @@ class MeasureProtectionService
         return $measureProtection;
     }
 
+    /**
+     * Returns the latest protection measure associated with the dossier.
+     */
+    public function getLatestByDossierId(
+        int $dossierId,
+        User $user
+    ): MeasureProtection {
+        $measureProtection = $this->measureProtectionRepository
+            ->findLatestByDossierIdAndUser(
+                $dossierId,
+                $user
+            );
+
+        if (!$measureProtection) {
+            throw new \RuntimeException(
+                'Aucune mesure de protection n’a été trouvée.'
+            );
+        }
+
+        return $measureProtection;
+    }
+
     private function applyOptionalData(MeasureProtection $measureProtection, array $data) : void
     {
         if (array_key_exists('end_date', $data)) {

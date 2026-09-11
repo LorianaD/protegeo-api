@@ -86,4 +86,24 @@ class MeasureProtectionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Returns the latest protection measure associated with the dossier.
+     */
+    public function findLatestByDossierIdAndUser(
+        int $dossierId,
+        User $user
+    ): ?MeasureProtection {
+        return $this->createQueryBuilder('measureProtection')
+            ->innerJoin('measureProtection.dossier', 'dossier')
+            ->innerJoin('dossier.dossierUsers', 'dossierUser')
+            ->andWhere('dossier.id = :dossierId')
+            ->andWhere('dossierUser.user = :user')
+            ->setParameter('dossierId', $dossierId)
+            ->setParameter('user', $user)
+            ->orderBy('measureProtection.startDate', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

@@ -77,6 +77,35 @@ class MeasureProtectionController extends ApiController
     }
 
     /**
+     * Returns the latest protection measure associated with the dossier.
+     */
+    #[Route('/latest', name: 'latest', methods: ['GET'])]
+    public function latest(int $id): JsonResponse
+    {
+        try {
+            $user = $this->getAuthenticatedUser();
+
+            $measureProtection = $this->measureProtectionService
+                ->getLatestByDossierId(
+                    $id,
+                    $user
+                );
+
+            $measureProtectionData = $this->measureProtectionFormatter->format(
+                $measureProtection
+            );
+
+            return $this->json([
+                'measure_protection' => $measureProtectionData,
+            ], JsonResponse::HTTP_OK);
+        } catch (\RuntimeException $exception) {
+            return $this->json([
+                'message' => $exception->getMessage(),
+            ], $this->getRuntimeStatusCode($exception));
+        }
+    }
+
+    /**
      * Creates a new protection measure for the dossier.
      */
     #[Route('', name: 'new', methods: ['POST'])]

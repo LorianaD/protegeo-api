@@ -55,7 +55,7 @@ final class DossierController extends ApiController
                 try {
                     $measureProtection = $this
                         ->measureProtectionService
-                        ->getCurrentByDossierId(
+                        ->getLatestByDossierId(
                             $dossier->getId(),
                             $user
                         );

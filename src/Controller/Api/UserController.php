@@ -30,7 +30,7 @@ final class UserController extends AbstractController
         }
 
         return $this->json(
-            $this->formatUser($user),
+            $this->userService->getProfile($user),
             JsonResponse::HTTP_OK
         );
     }
@@ -66,7 +66,7 @@ final class UserController extends AbstractController
 
             return $this->json([
                 'message' => 'Profil mis à jour avec succès.',
-                'user' => $this->formatUser($updatedUser),
+                'user' => $this->userService->getProfile($updatedUser),
             ], JsonResponse::HTTP_OK);
         } catch (\InvalidArgumentException $exception) {
             return $this->json([
@@ -112,18 +112,5 @@ final class UserController extends AbstractController
                 'message' => $exception->getMessage(),
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
-    }
-
-    /**
-     * Formats a user for the API response.
-     */
-    private function formatUser(User $user): array
-    {
-        return [
-            'id' => $user->getId(),
-            'email' => $user->getEmail(),
-            'last_name' => $user->getLastName(),
-            'first_name' => $user->getFirstName(),
-        ];
     }
 }
