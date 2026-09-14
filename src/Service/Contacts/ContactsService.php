@@ -266,31 +266,31 @@ class ContactsService
 
         if (array_key_exists('firstname', $data)) {
             $contact->setFirstname(
-                $this->getNullableString($data['firstname'])
+                $this->normalizeShortText($data['firstname'])
             );
         }
 
         if (array_key_exists('lastname', $data)) {
             $contact->setLastname(
-                $this->getNullableString($data['lastname'])
+                $this->normalizeShortText($data['lastname'])
             );
         }
 
         if (array_key_exists('organization_name', $data)) {
             $contact->setOrganizationName(
-                $this->getNullableString($data['organization_name'])
+                $this->normalizeShortText($data['organization_name'])
             );
         }
 
         if (array_key_exists('job_function', $data)) {
             $contact->setJobFunction(
-                $this->getNullableString($data['job_function'])
+                $this->normalizeShortText($data['job_function'])
             );
         }
 
         if (array_key_exists('profession', $data)) {
             $contact->setProfession(
-                $this->getNullableString($data['profession'])
+                $this->normalizeShortText($data['profession'])
             );
         }
 
@@ -302,19 +302,33 @@ class ContactsService
 
         if (array_key_exists('birth_place', $data)) {
             $contact->setBirthPlace(
-                $this->getNullableString($data['birth_place'])
+                $this->normalizeShortText($data['birth_place'])
             );
         }
 
         if (array_key_exists('address', $data)) {
             $contact->setAddress(
-                trim((string) $data['address'])
+                $this->normalizeShortText($data['address'])
+            );
+        }
+
+        if (array_key_exists('postal_code', $data)) {
+            $contact->setPostalCode(
+                $this->normalizePostalCode($data['postal_code'])
+            );
+        }
+
+        if (array_key_exists('city', $data)) {
+            $contact->setCity(
+                $this->normalizeShortText($data['city'])
             );
         }
 
         if (array_key_exists('phone', $data)) {
             $contact->setPhone(
-                $this->getNullableString($data['phone'])
+                $this->sanitizePhoneNumber(
+                    $this->getNullableString($data['phone'])
+                )
             );
         }
 
@@ -330,7 +344,11 @@ class ContactsService
                 );
             }
 
-            $contact->setEmail($email);
+            $contact->setEmail(
+                $email === null
+                    ? null
+                    : mb_strtolower($email)
+            );
         }
 
         if (array_key_exists('identifier', $data)) {
@@ -341,19 +359,19 @@ class ContactsService
 
         if (array_key_exists('contact_person', $data)) {
             $contact->setContactPerson(
-                $this->getNullableString($data['contact_person'])
+                $this->normalizeShortText($data['contact_person'])
             );
         }
 
         if (array_key_exists('protection_role', $data)) {
             $contact->setProtectionRole(
-                $this->getNullableString($data['protection_role'])
+                $this->normalizeShortText($data['protection_role'])
             );
         }
 
         if (array_key_exists('relation_type', $data)) {
             $contact->setRelationType(
-                $this->getNullableString($data['relation_type'])
+                $this->normalizeShortText($data['relation_type'])
             );
         }
 
@@ -407,5 +425,45 @@ class ContactsService
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Removes formatting characters from a phone number.
+     */
+    private function sanitizePhoneNumber(?string $phoneNumber): ?string
+    {
+        if ($phoneNumber === null || $phoneNumber === '') {
+            return null;
+        }
+
+        return preg_replace('/\D+/', '', $phoneNumber);
+    }
+
+    /**
+     * Normalizes a French postal code before persistence.
+     */
+    private function normalizePostalCode(mixed $postalCode): ?string
+    {
+        $postalCode = $this->getNullableString($postalCode);
+
+        if ($postalCode === null) {
+            return null;
+        }
+
+        return preg_replace('/\D+/', '', $postalCode);
+    }
+
+    /**
+     * Normalizes spaces in a short text value.
+     */
+    private function normalizeShortText(mixed $value): ?string
+    {
+        $value = $this->getNullableString($value);
+
+        if ($value === null) {
+            return null;
+        }
+
+        return preg_replace('/\s+/', ' ', $value);
     }
 }

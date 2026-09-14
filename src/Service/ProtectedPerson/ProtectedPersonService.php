@@ -270,7 +270,7 @@ class ProtectedPersonService
             return null;
         }
 
-        return preg_replace('/\s+/', '', $phoneNumber);
+        return preg_replace('/\D+/', '', $phoneNumber);
     }
 
     private function requiredString(mixed $value, string $fieldLabel) : string

@@ -66,7 +66,13 @@ class UserService
 
         $user->setBirthPlace($data['birth_place'] ?? $user->getBirthPlace());
         $user->setNationality($data['nationality'] ?? $user->getNationality());
-        $user->setPhoneNumber($data['phone_number'] ?? $user->getPhoneNumber());
+
+        if (array_key_exists('phone_number', $data)) {
+            $user->setPhoneNumber(
+                $this->normalizePhoneNumber($data['phone_number'])
+            );
+        }
+        
         $user->setProfession($data['profession'] ?? $user->getProfession());
         $user->setPracticing($data['practicing'] ?? $user->getPracticing());
 
@@ -104,5 +110,23 @@ class UserService
         $user->setUpdatedAt(new \DateTimeImmutable());
 
         $this->em->flush();
+    }
+
+    /**
+     * Normalizes a phone number before persistence.
+     */
+    private function normalizePhoneNumber(mixed $phoneNumber): ?string
+    {
+        if ($phoneNumber === null) {
+            return null;
+        }
+
+        $phoneNumber = trim((string) $phoneNumber);
+
+        if ($phoneNumber === '') {
+            return null;
+        }
+
+        return preg_replace('/\D+/', '', $phoneNumber);
     }
 }

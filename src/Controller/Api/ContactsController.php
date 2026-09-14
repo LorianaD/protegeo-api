@@ -202,6 +202,8 @@ class ContactsController extends ApiController
             'birth_date' => $contact->getBirthDate()?->format('Y-m-d'),
             'birth_place' => $contact->getBirthPlace(),
             'address' => $contact->getAddress(),
+            'postal_code' => $contact->getPostalCode(),
+            'city' => $contact->getCity(),
             'phone' => $contact->getPhone(),
             'email' => $contact->getEmail(),
             'identifier' => $contact->getIdentifier(),
