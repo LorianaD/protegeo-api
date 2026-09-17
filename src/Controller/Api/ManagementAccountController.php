@@ -141,6 +141,44 @@ class ManagementAccountController extends ApiController
                 ], JsonResponse::HTTP_BAD_REQUEST);
             }
 
+            $hasPeriod =
+                !empty($data['start_date'])
+                && !empty($data['end_date']);
+
+            if (!$hasPeriod) {
+                return $this->json([
+                    'message' => 'Les dates de début et de fin sont obligatoires.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $startDate = DateTime::createFromFormat(
+                '!Y-m-d',
+                (string) $data['start_date']
+            );
+
+            $endDate = DateTime::createFromFormat(
+                '!Y-m-d',
+                (string) $data['end_date']
+            );
+
+            $hasValidDates =
+                $startDate
+                && $endDate
+                && $startDate->format('Y-m-d') === $data['start_date']
+                && $endDate->format('Y-m-d') === $data['end_date'];
+
+            if (!$hasValidDates) {
+                return $this->json([
+                    'message' => 'Les dates de la période sont invalides.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $this->managementAccountService->validatePeriod(
+                $dossier,
+                $startDate,
+                $endDate
+            );
+
             $existingManagementAccount = $this->managementAccountService->getManagementAccountByYear(
                 $dossier,
                 $year
@@ -168,9 +206,13 @@ class ManagementAccountController extends ApiController
             }
 
             $managementAccount = new ManagementAccount();
-            $managementAccount->setDossier($dossier);
-            $managementAccount->setYear(new DateTime($year . '-01-01'));
-            $managementAccount->setNote($data['note'] ?? null);
+
+            $managementAccount
+                ->setDossier($dossier)
+                ->setYear(new DateTime($year . '-01-01'))
+                ->setStartDate($startDate)
+                ->setEndDate($endDate)
+                ->setNote($data['note'] ?? null);
 
             $this->managementAccountService->applyStatus(
                 $managementAccount,
@@ -288,6 +330,8 @@ class ManagementAccountController extends ApiController
             'id' => $managementAccount->getId(),
             'dossier_id' => $managementAccount->getDossier()->getId(),
             'year' => $managementAccount->getYear()?->format('Y'),
+            'start_date' => $managementAccount->getStartDate()?->format('Y-m-d'),
+            'end_date' => $managementAccount->getEndDate()?->format('Y-m-d'),
             'status' => $managementAccount->getStatus(),
             'sent_at' => $managementAccount->getSentAt()?->format('Y-m-d H:i:s'),
             'note' => $managementAccount->getNote(),

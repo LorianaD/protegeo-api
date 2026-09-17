@@ -4,6 +4,7 @@ namespace App\Service\ManagementAccount;
 
 use App\Entity\Dossier;
 use App\Entity\ManagementAccount;
+use App\Entity\MeasureProtection;
 use App\Enum\ManagementAccountStatus;
 use App\Repository\ManagementAccountRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,17 +44,60 @@ class ManagementAccountService
     }
 
     /**
-     * Creates the initial management account for a new dossier.
+     * Validates the management account period and prevents overlaps.
      */
-    public function createInitial(Dossier $dossier): ManagementAccount
+    public function validatePeriod(Dossier $dossier, \DateTimeInterface $startDate, \DateTimeInterface $endDate): void 
     {
-        $year = $dossier->getOpenedAt()->format('Y');
+        if ($endDate <= $startDate) {
+            throw new \InvalidArgumentException(
+                'La date de fin doit être postérieure à la date de début.'
+            );
+        }
+
+        $overlappingManagementAccount = $this
+            ->managementAccountRepository
+            ->findOverlappingPeriod(
+                $dossier,
+                $startDate,
+                $endDate,
+            );
+
+        if ($overlappingManagementAccount) {
+            throw new \InvalidArgumentException(
+                'Un compte de gestion existe déjà pour tout ou partie de cette période.'
+            );
+        }
+    }
+
+    /**
+     * Creates the initial management account from the protection measure start date.
+     */
+    public function createInitial(Dossier $dossier, MeasureProtection $measureProtection): ManagementAccount
+    {
+        $startDate = $measureProtection->getStartDate();
+
+        if (!$startDate) {
+            throw new \InvalidArgumentException(
+                'La date de début de la mesure est obligatoire.'
+            );
+        }
+
+        $endDate = (clone $startDate)->modify('+1 year');
+        $year = $startDate->format('Y');
+
+        $this->validatePeriod(
+            $dossier,
+            $startDate,
+            $endDate
+        );
 
         $managementAccount = new ManagementAccount();
 
         $managementAccount
             ->setDossier($dossier)
             ->setYear(new \DateTime($year . '-01-01'))
+            ->setStartDate(clone $startDate)
+            ->setEndDate($endDate)
             ->setStatus(ManagementAccountStatus::IN_PROGRESS);
 
         $this->em->persist($managementAccount);

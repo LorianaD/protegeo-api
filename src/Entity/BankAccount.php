@@ -230,7 +230,7 @@ class BankAccount
         return $this;
     }
 
-    public function removeTrasaction(Transaction $transaction): static
+    public function removeTransaction(Transaction $transaction): static
     {
         if ($this->transactions->removeElement($transaction)) {
             // set the owning side to null (unless already changed)

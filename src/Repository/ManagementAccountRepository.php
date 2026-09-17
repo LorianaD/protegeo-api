@@ -50,6 +50,23 @@ class ManagementAccountRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /**
+     * Returns a management account overlapping the given period.
+     */
+    public function findOverlappingPeriod(Dossier $dossier, \DateTimeInterface $startDate, \DateTimeInterface $endDate): ?ManagementAccount
+    {
+        return $this->createQueryBuilder('managementAccount')
+            ->andWhere('managementAccount.dossier = :dossier')
+            ->andWhere('managementAccount.startDate < :endDate')
+            ->andWhere('managementAccount.endDate > :startDate')
+            ->setParameter('dossier', $dossier)
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function findOneById(int $managementAccountId): ?ManagementAccount
     {
         return $this->createQueryBuilder('m')

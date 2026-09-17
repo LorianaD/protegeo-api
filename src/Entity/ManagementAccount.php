@@ -19,6 +19,12 @@ class ManagementAccount
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $year = null;
 
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $startDate = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $endDate = null;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $sentAt = null;
 
@@ -63,6 +69,30 @@ class ManagementAccount
     public function setYear(\DateTimeInterface $year): static
     {
         $this->year = $year;
+
+        return $this;
+    }
+
+    public function getStartDate(): ?\DateTimeInterface
+    {
+        return $this->startDate;
+    }
+
+    public function setStartDate(?\DateTimeInterface $startDate): static
+    {
+        $this->startDate = $startDate;
+
+        return $this;
+    }
+
+    public function getEndDate(): ?\DateTimeInterface
+    {
+        return $this->endDate;
+    }
+
+    public function setEndDate(?\DateTimeInterface $endDate): static
+    {
+        $this->endDate = $endDate;
 
         return $this;
     }
@@ -142,12 +172,12 @@ class ManagementAccount
     /**
      * @return Collection<int, Transaction>
      */
-    public function getTrasactions(): Collection
+    public function getTransactions(): Collection
     {
         return $this->transactions;
     }
 
-    public function addTrasaction(Transaction $transaction): static
+    public function addTransaction(Transaction $transaction): static
     {
         if (!$this->transactions->contains($transaction)) {
             $this->transactions->add($transaction);
@@ -157,7 +187,7 @@ class ManagementAccount
         return $this;
     }
 
-    public function removeTrasaction(Transaction $transaction): static
+    public function removeTransaction(Transaction $transaction): static
     {
         $this->transactions->removeElement($transaction);
 

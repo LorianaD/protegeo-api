@@ -124,7 +124,7 @@ final class DossierController extends ApiController
                 $data['measure_protection']
             );
 
-            $this->managementAccountService->createInitial($dossier);
+            $this->managementAccountService->createInitial($dossier, $measureProtection);
 
             $this->dossierService->save();
 
