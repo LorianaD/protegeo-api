@@ -113,6 +113,15 @@ class TransactionService
     {
         $this->validateRequiredData($data);
 
+        $operationDate = $this->validateDate(
+            $data['operation_date']
+        );
+
+        $this->validateManagementAccountPeriod(
+            $managementAccount,
+            $operationDate
+        );
+
         $transaction = new Transaction();
 
         $transaction->setAccount($managementAccount);
@@ -131,6 +140,17 @@ class TransactionService
      */
     public function update(Transaction $transaction, array $data, ?BankAccount $bankAccount = null): Transaction
     {
+        if (array_key_exists('operation_date', $data)) {
+            $operationDate = $this->validateDate(
+                $data['operation_date']
+            );
+
+            $this->validateManagementAccountPeriod(
+                $transaction->getAccount(),
+                $operationDate
+            );
+        }
+
         if (array_key_exists('bank_account_id', $data)) {
             $transaction->setBankAccount($bankAccount);
         }
@@ -362,5 +382,29 @@ class TransactionService
         $value = trim($value);
 
         return $value !== '' ? $value : null;
+    }
+
+    /**
+     * Checks whether the transaction date belongs to the management account period.
+     */
+    private function validateManagementAccountPeriod(ManagementAccount $managementAccount, \DateTimeInterface $operationDate): void 
+    {
+        $startDate = $managementAccount->getStartDate();
+        $endDate = $managementAccount->getEndDate();
+
+        if ($startDate === null || $endDate === null) {
+            throw new \InvalidArgumentException(
+                'La période du compte de gestion n’est pas renseignée.'
+            );
+        }
+
+        if (
+            $operationDate < $startDate
+            || $operationDate > $endDate
+        ) {
+            throw new \InvalidArgumentException(
+                'La date de l’opération doit être comprise dans la période du compte de gestion.'
+            );
+        }
     }
 }
